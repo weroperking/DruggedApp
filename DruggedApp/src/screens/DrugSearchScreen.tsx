@@ -30,6 +30,7 @@ type DrugSearchScreenProps = {
 export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   navigation,
 }) => {
+  // Search state management
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Drug[]>([]);

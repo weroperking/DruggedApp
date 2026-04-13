@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { copyAsync, documentDirectory } from 'expo-file-system/legacy';
 import * as SQLite from 'expo-sqlite';
 import { Asset } from 'expo-asset';
+import WEB_FALLBACK from '../assets/drugs_web_fallback.json';
 
 export interface Drug {
   id: number;
@@ -18,15 +19,7 @@ export interface Drug {
   search_index: string | null;
 }
 
-// Web fallback (5 sample drugs)
-
-const WEB_SAMPLE: Drug[] = [
-  { id: 1, trade_name: "PANADOL", active_ingredient: "PARACETAMOL", price: 45, price_old: 55, manufacturer: "GSK", distributor: "Pharco", category: "ANALGESIC", subcategory: "NON-OPIOID", subcategory2: "ANTIPYRETIC", route: "ORAL.SOLID", search_index: "PANADOL PARACETAMOL" },
-  { id: 2, trade_name: "BRUFEN", active_ingredient: "IBUPROFEN", price: 55, price_old: 45, manufacturer: "Abbott", distributor: "Pharco", category: "NSAID", subcategory: "PROPIONIC ACID DERIVATIVES", subcategory2: null, route: "ORAL.SOLID", search_index: "BRUFEN IBUPROFEN" },
-  { id: 3, trade_name: "AMOXIL", active_ingredient: "AMOXICILLIN", price: 95, price_old: 110, manufacturer: "Pfizer", distributor: "Pharco", category: "ANTIBIOTIC", subcategory: "PENICILLINS", subcategory2: null, route: "ORAL.SOLID", search_index: "AMOXIL AMOXICILLIN" },
-  { id: 4, trade_name: "VOLTAREN", active_ingredient: "DICLOFENAC SODIUM", price: 120, price_old: null, manufacturer: "Novartis", distributor: "Pharco", category: "NSAID", subcategory: "ACETIC ACID DERIVATIVES", subcategory2: null, route: "ORAL.SOLID", search_index: "VOLTAREN DICLOFENAC" },
-  { id: 5, trade_name: "OMEPRAZOLE", active_ingredient: "OMEPRAZOLE", price: 85, price_old: 100, manufacturer: "AstraZeneca", distributor: "Pharco", category: "PEPTIC ULCER", subcategory: "PROTON PUMP INHIBITOR", subcategory2: null, route: "ORAL.SOLID", search_index: "OMEPRAZOLE ACID" },
-];
+const WEB_SAMPLE: Drug[] = WEB_FALLBACK as Drug[];
 
 // Native SQLite
 
@@ -64,9 +57,9 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
   await copyDatabaseIfNeeded();
   const dbPath = documentDirectory + DB_NAME;
   console.log('[DB] Opening database at:', dbPath);
-  const dbUri = dbPath.startsWith('file://') ? dbPath : `file://${dbPath}`;
-  console.log('[DB] Database URI:', dbUri);
-  db = await SQLite.openDatabaseAsync(dbUri);
+  const absPath = dbPath.startsWith('file://') ? dbPath.slice(7) : dbPath;
+  console.log('[DB] Absolute path:', absPath);
+  db = await SQLite.openDatabaseAsync(absPath);
   console.log('[DB] Database opened successfully');
   return db;
 }
