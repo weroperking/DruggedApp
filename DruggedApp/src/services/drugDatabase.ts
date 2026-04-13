@@ -35,25 +35,39 @@ let db: SQLite.SQLiteDatabase | null = null;
 
 async function copyDatabaseIfNeeded(): Promise<void> {
   const destPath = documentDirectory + DB_NAME;
+  console.log('[DB] Destination path:', destPath);
 
   const destInfo = await import('expo-file-system/legacy').then(fs => fs.getInfoAsync(destPath));
+  console.log('[DB] Destination exists:', destInfo.exists);
   if (destInfo.exists) return;
 
+  console.log('[DB] Loading asset...');
   const asset = Asset.fromModule(require('../assets/drugged.db'));
   await asset.downloadAsync();
 
   if (!asset.localUri) throw new Error('Failed to load drugged.db asset');
+  console.log('[DB] Asset localUri:', asset.localUri);
 
   await copyAsync({
     from: asset.localUri,
     to: destPath,
   });
+  console.log('[DB] Database copied successfully');
 }
 
 async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
-  if (db) return db;
+  if (db) {
+    console.log('[DB] Returning cached database instance');
+    return db;
+  }
+  console.log('[DB] Getting database, copying if needed...');
   await copyDatabaseIfNeeded();
-  db = await SQLite.openDatabaseAsync(documentDirectory + DB_NAME);
+  const dbPath = documentDirectory + DB_NAME;
+  console.log('[DB] Opening database at:', dbPath);
+  const dbUri = dbPath.startsWith('file://') ? dbPath : `file://${dbPath}`;
+  console.log('[DB] Database URI:', dbUri);
+  db = await SQLite.openDatabaseAsync(dbUri);
+  console.log('[DB] Database opened successfully');
   return db;
 }
 
@@ -84,9 +98,11 @@ export async function searchDrugs(query: string): Promise<Drug[]> {
   }
 
   const db = await getNativeDb();
+  console.log('[DB] Database opened, executing search...');
   const pattern = `%${q}%`;
+  console.log('[DB] Search pattern:', pattern);
 
-  return db.getAllAsync<Drug>(
+  const results = await db.getAllAsync<Drug>(
     `SELECT * FROM drugs
      WHERE trade_name LIKE ?
         OR active_ingredient LIKE ?
@@ -97,6 +113,8 @@ export async function searchDrugs(query: string): Promise<Drug[]> {
      LIMIT 50`,
     [pattern, pattern, pattern, `${q}%`]
   );
+  console.log('[DB] Search results count:', results.length);
+  return results;
 }
 
 export async function getDrugById(id: number): Promise<Drug | null> {

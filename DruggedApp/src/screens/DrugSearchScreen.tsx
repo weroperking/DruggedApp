@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,17 +33,23 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Drug[]>([]);
+  const inputRef = useRef<TextInput>(null);
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const handleSearch = async (searchQuery?: string) => {
+    const q = searchQuery || query;
+    if (!q.trim()) return;
     
     setLoading(true);
+    setResults([]);
     try {
+      console.log('[Search] Initializing database...');
       await initDatabase();
-      const searchResults = await searchDrugs(query.trim());
+      console.log('[Search] Database initialized, searching for:', q.trim());
+      const searchResults = await searchDrugs(q.trim());
+      console.log('[Search] Results:', searchResults.length);
       setResults(searchResults);
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('[Search] Error:', error);
     } finally {
       setLoading(false);
     }
@@ -60,7 +66,7 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
       style={styles.quickSearchButton}
       onPress={() => {
         setQuery(searchTerm);
-        setTimeout(() => handleSearch(), 100);
+        setTimeout(() => handleSearch(searchTerm), 100);
       }}
     >
       <Text style={styles.quickSearchText}>{title}</Text>
@@ -84,18 +90,20 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
 
       <View style={styles.searchContainer}>
         <TextInput
+          ref={inputRef}
           style={styles.searchInput}
           placeholder="e.g., PANADOL, AMOXICILLIN"
           placeholderTextColor={colors.neutral.gray}
           value={query}
           onChangeText={setQuery}
-          onSubmitEditing={handleSearch}
+          onSubmitEditing={() => handleSearch()}
+          returnKeyType="search"
           autoCapitalize="characters"
           autoCorrect={false}
         />
         <TouchableOpacity
           style={styles.searchButton}
-          onPress={handleSearch}
+          onPress={() => handleSearch()}
         >
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
