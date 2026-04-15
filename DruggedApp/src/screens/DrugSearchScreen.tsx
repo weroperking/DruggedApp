@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, spacing, typography, borderRadius } from '../theme';
-import { searchDrugs, initDatabase, Drug } from '../services/drugDatabase';
+import { searchDrugs, initDatabase, getDrugCount, Drug, SearchField } from '../services/drugDatabase';
 
 type RootStackParamList = {
   SectionSelect: undefined;
@@ -27,14 +28,27 @@ type DrugSearchScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DrugSearch'>;
 };
 
+const SEARCH_MODES: { label: string; value: SearchField; placeholder: string }[] = [
+  { label: 'All', value: 'all', placeholder: 'e.g., PANADOL, PARACETAMOL...' },
+  { label: 'Trade Name', value: 'trade_name', placeholder: 'e.g., PANADOL, BRUFEN...' },
+  { label: 'Ingredient', value: 'active_ingredient', placeholder: 'e.g., PARACETAMOL, IBUPROFEN...' },
+  { label: 'Category', value: 'category', placeholder: 'e.g., ANALGESIC, SKIN CARE...' },
+  { label: 'Manufacturer', value: 'manufacturer', placeholder: 'e.g., NOVARTIS, PFIZER...' },
+  { label: 'Route', value: 'route', placeholder: 'e.g., ORAL, TOPICAL...' },
+];
+
 export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   navigation,
 }) => {
-  // Search state management
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Drug[]>([]);
+  const [searchField, setSearchField] = useState<SearchField>('all');
+  const [error, setError] = useState<string | null>(null);
+  const [drugCount, setDrugCount] = useState<number>(0);
   const inputRef = useRef<TextInput>(null);
+
+  const currentMode = SEARCH_MODES.find(m => m.value === searchField)!;
 
   const handleSearch = async (searchQuery?: string) => {
     const q = searchQuery || query;
@@ -42,15 +56,20 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
     
     setLoading(true);
     setResults([]);
+    setError(null);
     try {
       console.log('[Search] Initializing database...');
       await initDatabase();
-      console.log('[Search] Database initialized, searching for:', q.trim());
-      const searchResults = await searchDrugs(q.trim());
-      console.log('[Search] Results:', searchResults.length);
+      const count = await getDrugCount();
+      setDrugCount(count);
+      console.log('[Search] Total drugs in DB:', count);
+      console.log('[Search] Searching for:', q.trim(), 'in field:', searchField);
+      const searchResults = await searchDrugs(q.trim(), searchField);
+      console.log('[Search] Found results:', searchResults.length);
       setResults(searchResults);
     } catch (error) {
       console.error('[Search] Error:', error);
+      setError(String(error));
     } finally {
       setLoading(false);
     }
@@ -84,16 +103,38 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
           <Text style={styles.backText}>‹ Select Section</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Drug Search</Text>
+        {drugCount > 0 && (
+          <Text style={styles.subtitle}>{drugCount} drugs in database</Text>
+        )}
         <Text style={styles.subtitle}>
           Search by name, active ingredient, or category
         </Text>
       </View>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.modeScroll}
+        contentContainerStyle={styles.modeContainer}
+      >
+        {SEARCH_MODES.map(mode => (
+          <TouchableOpacity
+            key={mode.value}
+            style={[styles.modeChip, searchField === mode.value && styles.modeChipActive]}
+            onPress={() => { setSearchField(mode.value); setResults([]); }}
+          >
+            <Text style={[styles.modeChipText, searchField === mode.value && styles.modeChipTextActive]}>
+              {mode.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <View style={styles.searchContainer}>
         <TextInput
           ref={inputRef}
           style={styles.searchInput}
-          placeholder="e.g., PANADOL, AMOXICILLIN"
+          placeholder={currentMode.placeholder}
           placeholderTextColor={colors.neutral.gray}
           value={query}
           onChangeText={setQuery}
@@ -109,6 +150,12 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
           <Text style={styles.searchButtonText}>Search</Text>
         </TouchableOpacity>
       </View>
+
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+        </View>
+      )}
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -130,9 +177,19 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
                     <Text style={styles.resultIngredient}>
                       {item.active_ingredient}
                     </Text>
-                    <Text style={styles.resultPrice}>
-                      EGP {item.price.toFixed(2)}
+                    <Text style={styles.resultMeta}>
+                      {[item.category, item.route].filter(Boolean).join(' · ')}
                     </Text>
+                    <View style={styles.priceRow}>
+                      <Text style={styles.resultPrice}>
+                        EGP {item.price.toFixed(2)}
+                      </Text>
+                      {item.price_old && item.price_old > item.price && (
+                        <Text style={styles.priceOld}>
+                          EGP {item.price_old.toFixed(2)}
+                        </Text>
+                      )}
+                    </View>
                   </View>
                 )}
               />
@@ -189,6 +246,37 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral.gray,
   },
+  modeScroll: {
+    maxHeight: 52,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  modeContainer: {
+    gap: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modeChip: {
+    borderWidth: 2,
+    borderColor: colors.border.dark,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.neutral.white,
+    marginRight: spacing.sm,
+  },
+  modeChipActive: {
+    backgroundColor: colors.primary.green,
+    borderColor: colors.primary.darkGreen,
+  },
+  modeChipText: {
+    ...typography.small,
+    color: colors.neutral.charcoal,
+    fontWeight: '600',
+  },
+  modeChipTextActive: {
+    color: colors.neutral.white,
+  },
   searchContainer: {
     flexDirection: 'row',
     padding: spacing.lg,
@@ -214,6 +302,16 @@ const styles = StyleSheet.create({
   },
   searchButtonText: {
     ...typography.button,
+  },
+  errorContainer: {
+    backgroundColor: colors.accent.red,
+    margin: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  errorText: {
+    ...typography.small,
+    color: colors.neutral.white,
   },
   loadingContainer: {
     flex: 1,
@@ -245,11 +343,26 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: colors.neutral.gray,
   },
+  resultMeta: {
+    ...typography.small,
+    color: colors.neutral.gray,
+    marginTop: 2,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
   resultPrice: {
     ...typography.body,
     fontWeight: '700',
     color: colors.primary.green,
-    marginTop: spacing.xs,
+  },
+  priceOld: {
+    ...typography.small,
+    color: colors.neutral.gray,
+    textDecorationLine: 'line-through',
+    marginLeft: spacing.sm,
   },
   viewAllButton: {
     backgroundColor: colors.primary.darkGreen,

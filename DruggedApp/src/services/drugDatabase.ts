@@ -19,6 +19,16 @@ export interface Drug {
   search_index: string | null;
 }
 
+export type SearchField =
+  | 'all'
+  | 'trade_name'
+  | 'active_ingredient'
+  | 'category'
+  | 'subcategory'
+  | 'manufacturer'
+  | 'distributor'
+  | 'route';
+
 const WEB_SAMPLE: Drug[] = WEB_FALLBACK as Drug[];
 
 // Native SQLite
@@ -27,25 +37,30 @@ const DB_NAME = 'drugged.db';
 let db: SQLite.SQLiteDatabase | null = null;
 
 async function copyDatabaseIfNeeded(): Promise<void> {
-  const destPath = documentDirectory + DB_NAME;
-  console.log('[DB] Destination path:', destPath);
+  try {
+    const destPath = documentDirectory + DB_NAME;
+    console.log('[DB] Destination path:', destPath);
 
-  const destInfo = await import('expo-file-system/legacy').then(fs => fs.getInfoAsync(destPath));
-  console.log('[DB] Destination exists:', destInfo.exists);
-  if (destInfo.exists) return;
+    const destInfo = await import('expo-file-system/legacy').then(fs => fs.getInfoAsync(destPath));
+    console.log('[DB] Destination exists:', destInfo.exists);
+    if (destInfo.exists) return;
 
-  console.log('[DB] Loading asset...');
-  const asset = Asset.fromModule(require('../assets/drugged.db'));
-  await asset.downloadAsync();
+    console.log('[DB] Loading asset...');
+    const asset = Asset.fromModule(require('../assets/drugged.db'));
+    await asset.downloadAsync();
 
-  if (!asset.localUri) throw new Error('Failed to load drugged.db asset');
-  console.log('[DB] Asset localUri:', asset.localUri);
+    if (!asset.localUri) throw new Error('Failed to load drugged.db asset');
+    console.log('[DB] Asset localUri:', asset.localUri);
 
-  await copyAsync({
-    from: asset.localUri,
-    to: destPath,
-  });
-  console.log('[DB] Database copied successfully');
+    await copyAsync({
+      from: asset.localUri,
+      to: destPath,
+    });
+    console.log('[DB] Database copied successfully');
+  } catch (error) {
+    console.error('[DB] Error copying database:', error);
+    throw error;
+  }
 }
 
 async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
@@ -71,43 +86,105 @@ export async function initDatabase(): Promise<void> {
   await getNativeDb();
 }
 
-export async function searchDrugs(query: string): Promise<Drug[]> {
+export async function searchDrugs(
+  query: string,
+  field: SearchField = 'all'
+): Promise<Drug[]> {
   const q = query.trim();
   if (!q) return [];
 
-  // DEBUG: Log platform and query
-  console.log('[DEBUG] Platform.OS:', Platform.OS);
-  console.log('[DEBUG] Query:', q);
-  console.log('[DEBUG] WEB_SAMPLE length:', WEB_SAMPLE.length);
+  console.log('[DEBUG] Platform.OS:', Platform.OS, '| field:', field, '| query:', q);
 
-  if (Platform.OS === 'web') {
+  try {
+    const db = await getNativeDb();
+    const pattern = `%${q}%`;
+    const startPattern = `${q}%`;
+
+    let querySQL: string;
+    let params: string[];
+
+    if (field === 'all') {
+      querySQL = `
+        SELECT * FROM drugs
+        WHERE trade_name LIKE ? COLLATE NOCASE
+           OR active_ingredient LIKE ? COLLATE NOCASE
+           OR category LIKE ? COLLATE NOCASE
+           OR manufacturer LIKE ? COLLATE NOCASE
+           OR search_index LIKE ? COLLATE NOCASE
+        ORDER BY
+          CASE WHEN trade_name LIKE ? THEN 0
+               WHEN active_ingredient LIKE ? THEN 1
+               ELSE 2 END,
+          trade_name
+        LIMIT 50
+      `;
+      params = [pattern, pattern, pattern, pattern, pattern, startPattern, startPattern];
+    } else {
+      querySQL = `
+        SELECT * FROM drugs
+        WHERE ${field} LIKE ? COLLATE NOCASE
+        ORDER BY
+          CASE WHEN ${field} LIKE ? THEN 0 ELSE 1 END,
+          trade_name
+        LIMIT 50
+      `;
+      params = [pattern, startPattern];
+    }
+
+    console.log('[DB] Executing query');
+    
+    const nativeResults = await db.getAllAsync<Drug>(querySQL, params);
+    console.log('[DB] Native results:', nativeResults.length);
+    
+    if (nativeResults.length > 0) {
+      return nativeResults;
+    }
+
     const lower = q.toLowerCase();
-    const results = WEB_SAMPLE.filter(d =>
-      d.trade_name?.toLowerCase().includes(lower) ||
-      d.active_ingredient?.toLowerCase().includes(lower)
-    );
-    console.log('[DEBUG] Web results:', results.length);
-    return results;
+    const webResults = WEB_SAMPLE.filter(d => {
+      switch (field) {
+        case 'trade_name':
+          return d.trade_name?.toLowerCase().includes(lower);
+        case 'active_ingredient':
+          return d.active_ingredient?.toLowerCase().includes(lower);
+        case 'category':
+          return d.category?.toLowerCase().includes(lower);
+        case 'subcategory':
+          return d.subcategory?.toLowerCase().includes(lower);
+        case 'manufacturer':
+          return d.manufacturer?.toLowerCase().includes(lower);
+        case 'distributor':
+          return d.distributor?.toLowerCase().includes(lower);
+        default:
+          return (
+            d.trade_name?.toLowerCase().includes(lower) ||
+            d.active_ingredient?.toLowerCase().includes(lower)
+          );
+      }
+    });
+    console.log('[DEBUG] Web fallback results:', webResults.length);
+    return webResults.slice(0, 50);
+  } catch (error) {
+    console.error('[DB] Search error, using web fallback:', error);
+    
+    const lower = q.toLowerCase();
+    const webResults = WEB_SAMPLE.filter(d => {
+      switch (field) {
+        case 'trade_name':
+          return d.trade_name?.toLowerCase().includes(lower);
+        case 'active_ingredient':
+          return d.active_ingredient?.toLowerCase().includes(lower);
+        case 'category':
+          return d.category?.toLowerCase().includes(lower);
+        default:
+          return (
+            d.trade_name?.toLowerCase().includes(lower) ||
+            d.active_ingredient?.toLowerCase().includes(lower)
+          );
+      }
+    });
+    return webResults.slice(0, 50);
   }
-
-  const db = await getNativeDb();
-  console.log('[DB] Database opened, executing search...');
-  const pattern = `%${q}%`;
-  console.log('[DB] Search pattern:', pattern);
-
-  const results = await db.getAllAsync<Drug>(
-    `SELECT * FROM drugs
-     WHERE trade_name LIKE ?
-        OR active_ingredient LIKE ?
-        OR search_index LIKE ?
-     ORDER BY
-       CASE WHEN trade_name LIKE ? THEN 0 ELSE 1 END,
-       trade_name
-     LIMIT 50`,
-    [pattern, pattern, pattern, `${q}%`]
-  );
-  console.log('[DB] Search results count:', results.length);
-  return results;
 }
 
 export async function getDrugById(id: number): Promise<Drug | null> {
@@ -196,7 +273,13 @@ export async function getPriceDrops(limit = 20): Promise<Drug[]> {
 
 export async function getDrugCount(): Promise<number> {
   if (Platform.OS === 'web') return WEB_SAMPLE.length;
-  const db = await getNativeDb();
-  const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM drugs');
-  return result?.count ?? 0;
+  try {
+    const db = await getNativeDb();
+    const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM drugs');
+    console.log('[DB] Drug count:', result?.count);
+    return result?.count ?? 0;
+  } catch (error) {
+    console.error('[DB] getDrugCount error:', error);
+    return 0;
+  }
 }
