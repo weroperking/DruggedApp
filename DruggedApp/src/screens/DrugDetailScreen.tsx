@@ -28,15 +28,6 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
 }) => {
   const { drug } = route.params;
 
-  const formatPrice = (price: number) => {
-    return `EGP ${price.toFixed(2)}`;
-  };
-
-  const hasDiscount = drug.price_old && drug.price_old > drug.price;
-  const discountPercent = hasDiscount
-    ? Math.round(((drug.price_old! - drug.price) / drug.price_old!) * 100)
-    : 0;
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -57,22 +48,6 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
         <View style={styles.titleSection}>
           <Text style={styles.drugName}>{drug.trade_name}</Text>
           <Text style={styles.ingredient}>{drug.active_ingredient}</Text>
-
-          {hasDiscount && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>-{discountPercent}% Discount</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Price Card */}
-        <View style={styles.priceCard}>
-          <View style={styles.priceRow}>
-            <Text style={styles.currentPrice}>{formatPrice(drug.price)}</Text>
-            {hasDiscount && (
-              <Text style={styles.oldPrice}>{formatPrice(drug.price_old!)}</Text>
-            )}
-          </View>
         </View>
 
         {/* Details Card */}
@@ -159,7 +134,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   titleSection: {
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   drugName: {
     ...typography.h1,
@@ -168,41 +143,6 @@ const styles = StyleSheet.create({
   ingredient: {
     ...typography.body,
     color: colors.neutral.gray,
-    marginBottom: spacing.md,
-  },
-  discountBadge: {
-    backgroundColor: colors.accent.red,
-    alignSelf: 'flex-start',
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  discountText: {
-    ...typography.small,
-    color: colors.neutral.white,
-    fontWeight: '700',
-  },
-  priceCard: {
-    backgroundColor: colors.primary.green,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  currentPrice: {
-    ...typography.h2,
-    color: colors.neutral.white,
-    fontWeight: '700',
-  },
-  oldPrice: {
-    ...typography.body,
-    color: colors.neutral.white,
-    opacity: 0.7,
-    textDecorationLine: 'line-through',
   },
   card: {
     backgroundColor: colors.neutral.white,

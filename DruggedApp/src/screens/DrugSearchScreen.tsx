@@ -9,9 +9,10 @@ import {
   FlatList,
   ActivityIndicator,
   ScrollView,
+  Pressable,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 import { searchDrugs, initDatabase, getDrugCount, Drug, SearchField } from '../services/drugDatabase';
 
 type RootStackParamList = {
@@ -21,6 +22,7 @@ type RootStackParamList = {
   Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
   DrugSearch: { drugCount: number };
   DrugSearchResults: { drugs: Drug[]; query: string };
+  DrugDetail: { drug: Drug };
   Disclaimer: undefined;
 };
 
@@ -49,6 +51,7 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   const [results, setResults] = useState<Drug[]>([]);
   const [searchField, setSearchField] = useState<SearchField>('all');
   const [error, setError] = useState<string | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const drugCount = route.params?.drugCount ?? 0;
   const inputRef = useRef<TextInput>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -136,88 +139,111 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate('SectionSelect')}
-        >
-          <Text style={styles.backText}>‹ Select Section</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>Drug Search</Text>
-        {drugCount > 0 && (
-          <Text style={styles.subtitle}>{drugCount} drugs in database</Text>
-        )}
-        <Text style={styles.subtitle}>
-          Search by name, active ingredient, or category
-        </Text>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.modeScroll}
-        contentContainerStyle={styles.modeContainer}
+      <ScrollView 
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {SEARCH_MODES.map(mode => (
+        <View style={styles.header}>
           <TouchableOpacity
-            key={mode.value}
-            style={[styles.modeChip, searchField === mode.value && styles.modeChipActive]}
-            onPress={() => { setSearchField(mode.value); setResults([]); }}
+            style={styles.backButton}
+            onPress={() => navigation.navigate('SectionSelect')}
           >
-            <Text style={[styles.modeChipText, searchField === mode.value && styles.modeChipTextActive]}>
-              {mode.label}
-            </Text>
+            <Text style={styles.backText}>‹ Select Section</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.searchContainer}>
-        <TextInput
-          ref={inputRef}
-          style={styles.searchInput}
-          placeholder={currentMode.placeholder}
-          placeholderTextColor={colors.neutral.gray}
-          value={query}
-          onChangeText={setQuery}
-          onSubmitEditing={() => handleSearch()}
-          returnKeyType="search"
-          autoCapitalize="characters"
-          autoCorrect={false}
-        />
-        <TouchableOpacity
-          style={styles.searchButton}
-          onPress={() => handleSearch()}
-        >
-          <Text style={styles.searchButtonText}>Search</Text>
-        </TouchableOpacity>
-      </View>
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error: {error}</Text>
+          <Text style={styles.title}>Drug Search</Text>
+          {drugCount > 0 && (
+            <Text style={styles.subtitle}>{drugCount} drugs in database</Text>
+          )}
+          <Text style={styles.subtitle}>
+            Search by name, active ingredient, or category
+          </Text>
         </View>
-      )}
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary.green} />
+        <View style={styles.dropdownContainer}>
+          <Pressable
+            style={styles.dropdownButton}
+            onPress={() => setDropdownOpen(!dropdownOpen)}
+          >
+            <Text style={styles.dropdownButtonText}>
+              Search by: {currentMode.label}
+            </Text>
+            <Text style={styles.dropdownArrow}>{dropdownOpen ? '▲' : '▼'}</Text>
+          </Pressable>
+
+          {dropdownOpen && (
+            <View style={styles.dropdownMenu}>
+              {SEARCH_MODES.map(mode => (
+                <Pressable
+                  key={mode.value}
+                  style={[
+                    styles.dropdownItem,
+                    searchField === mode.value && styles.dropdownItemActive
+                  ]}
+                  onPress={() => {
+                    setSearchField(mode.value);
+                    setResults([]);
+                    setDropdownOpen(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.dropdownItemText,
+                    searchField === mode.value && styles.dropdownItemTextActive
+                  ]}>
+                    {mode.label}
+                  </Text>
+                  {searchField === mode.value && (
+                    <Text style={styles.checkmark}>✓</Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
-      ) : (
-        <>
-          {results.length > 0 && (
-            <View style={styles.resultsPreview}>
-              <Text style={styles.resultsCount}>
-                {results.length} results found
-              </Text>
-              <FlatList
-                data={results.slice(0, 5)}
-                keyExtractor={(item) => item.id.toString()}
-                nestedScrollEnabled={true}
-                scrollEnabled={false}
-                renderItem={({ item }) => (
+
+        <View style={styles.searchContainer}>
+          <TextInput
+            ref={inputRef}
+            style={styles.searchInput}
+            placeholder={currentMode.placeholder}
+            placeholderTextColor={colors.neutral.gray}
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={() => handleSearch()}
+            returnKeyType="search"
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => handleSearch()}
+          >
+            <Text style={styles.searchButtonText}>Search</Text>
+          </TouchableOpacity>
+        </View>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Error: {error}</Text>
+          </View>
+        )}
+
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary.green} />
+          </View>
+        ) : (
+          <>
+            {results.length > 0 && (
+              <View style={styles.resultsPreview}>
+                <Text style={styles.resultsCount}>
+                  {results.length} results found
+                </Text>
+                {results.slice(0, 5).map((item) => (
                   <TouchableOpacity
+                    key={item.id.toString()}
                     style={styles.resultItem}
-                    onPress={() => navigation.navigate('DrugSearchResults', { drugs: results, query })}
+                    onPress={() => navigation.navigate('DrugDetail', { drug: item })}
                     activeOpacity={0.7}
                   >
                     <Text style={styles.resultName}>{item.trade_name}</Text>
@@ -238,32 +264,32 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
                       )}
                     </View>
                   </TouchableOpacity>
-                )}
-              />
-              <TouchableOpacity
-                style={styles.viewAllButton}
-                onPress={handleViewResults}
-              >
-                <Text style={styles.viewAllButtonText}>
-                  View all {results.length} results
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                ))}
+                <TouchableOpacity
+                  style={styles.viewAllButton}
+                  onPress={handleViewResults}
+                >
+                  <Text style={styles.viewAllButtonText}>
+                    View all {results.length} results
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
-          <View style={styles.quickSearchSection}>
-            <Text style={styles.quickSearchTitle}>Quick Searches</Text>
-            <View style={styles.quickSearchGrid}>
-              {renderQuickSearch('Pain Relief', 'PANADOL')}
-              {renderQuickSearch('Antibiotics', 'AMOXICILLIN')}
-              {renderQuickSearch('Allergy', 'CETIRIZINE')}
-              {renderQuickSearch('Skin Care', 'SKIN')}
-              {renderQuickSearch('Vitamins', 'VITAMIN')}
-              {renderQuickSearch('Blood Pressure', 'BLOOD')}
+            <View style={styles.quickSearchSection}>
+              <Text style={styles.quickSearchTitle}>Quick Searches</Text>
+              <View style={styles.quickSearchGrid}>
+                {renderQuickSearch('Pain Relief', 'PANADOL')}
+                {renderQuickSearch('Antibiotics', 'AMOXICILLIN')}
+                {renderQuickSearch('Allergy', 'CETIRIZINE')}
+                {renderQuickSearch('Skin Care', 'SKIN')}
+                {renderQuickSearch('Vitamins', 'VITAMIN')}
+                {renderQuickSearch('Blood Pressure', 'BLOOD')}
+              </View>
             </View>
-          </View>
-        </>
-      )}
+          </>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -272,6 +298,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.neutral.offWhite,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     padding: spacing.lg,
@@ -293,41 +325,72 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral.gray,
   },
-  modeScroll: {
-    maxHeight: 52,
-    marginBottom: spacing.sm,
+  dropdownContainer: {
     paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+    zIndex: 100,
   },
-  modeContainer: {
-    gap: spacing.sm,
+  dropdownButton: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  modeChip: {
-    borderWidth: 2,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 3,
     borderColor: colors.border.dark,
     borderRadius: borderRadius.lg,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.neutral.white,
-    marginRight: spacing.sm,
+    padding: spacing.md,
   },
-  modeChipActive: {
-    backgroundColor: colors.primary.green,
-    borderColor: colors.primary.darkGreen,
-  },
-  modeChipText: {
-    ...typography.small,
-    color: colors.neutral.charcoal,
+  dropdownButtonText: {
+    ...typography.body,
     fontWeight: '600',
+    color: colors.neutral.charcoal,
   },
-  modeChipTextActive: {
-    color: colors.neutral.white,
+  dropdownArrow: {
+    fontSize: 12,
+    color: colors.neutral.gray,
+    fontWeight: '700',
+  },
+  dropdownMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: spacing.lg,
+    right: 0,
+    marginTop: spacing.xs,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 3,
+    borderColor: colors.border.dark,
+    borderRadius: borderRadius.lg,
+    zIndex: 200,
+    elevation: 4,
+    ...shadows.medium,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  dropdownItemActive: {
+    backgroundColor: colors.primary.green + '15',
+  },
+  dropdownItemText: {
+    ...typography.body,
+    color: colors.neutral.charcoal,
+  },
+  dropdownItemTextActive: {
+    color: colors.primary.darkGreen,
+    fontWeight: '700',
+  },
+  checkmark: {
+    color: colors.primary.green,
+    fontWeight: '700',
   },
   searchContainer: {
     flexDirection: 'row',
-    padding: spacing.lg,
-    paddingTop: 0,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
   },
   searchInput: {
     flex: 1,
@@ -335,17 +398,19 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     ...typography.body,
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: colors.border.dark,
+    minHeight: 56,
   },
   searchButton: {
     backgroundColor: colors.primary.green,
-    borderWidth: 4,
+    borderWidth: 3,
     borderColor: colors.primary.darkGreen,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     marginLeft: spacing.sm,
     justifyContent: 'center',
+    minHeight: 56,
   },
   searchButtonText: {
     ...typography.button,
@@ -425,7 +490,7 @@ const styles = StyleSheet.create({
   },
   quickSearchSection: {
     padding: spacing.lg,
-    paddingTop: spacing.md,
+    paddingTop: spacing.lg,
   },
   quickSearchTitle: {
     ...typography.h3,

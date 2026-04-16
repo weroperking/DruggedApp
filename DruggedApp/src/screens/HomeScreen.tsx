@@ -73,11 +73,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.button}>
-          <Text style={styles.buttonText} onPress={handleContinue}>
+        <TouchableOpacity 
+          style={[
+            styles.button, 
+            !selectedSymptom && styles.buttonDisabled
+          ]}
+          onPress={handleContinue}
+          disabled={!selectedSymptom}
+          activeOpacity={0.8}
+        >
+          <Text style={[
+            styles.buttonText,
+            !selectedSymptom && styles.buttonTextDisabled
+          ]}>
             Continue
           </Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -153,5 +164,13 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...typography.button,
+  },
+  buttonDisabled: {
+    backgroundColor: colors.neutral.gray,
+    borderColor: colors.neutral.gray,
+    opacity: 0.5,
+  },
+  buttonTextDisabled: {
+    color: colors.neutral.white,
   },
 });

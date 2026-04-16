@@ -35,16 +35,7 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
 }) => {
   const { drugs, query } = route.params;
 
-  const formatPrice = useCallback((price: number) => {
-    return `EGP ${price.toFixed(2)}`;
-  }, []);
-
   const renderDrugCard = useCallback((drug: Drug) => {
-    const hasDiscount = drug.price_old && drug.price_old > drug.price;
-    const discountPercent = hasDiscount
-      ? Math.round(((drug.price_old! - drug.price) / drug.price_old!) * 100)
-      : 0;
-
     const handlePress = () => {
       navigation.navigate('DrugDetail', { drug });
     };
@@ -55,29 +46,14 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
         onPress={handlePress}
         activeOpacity={0.7}
       >
-        <View style={styles.drugHeader}>
-          <Text style={styles.drugName}>{drug.trade_name}</Text>
-          {hasDiscount && (
-            <View style={styles.discountBadge}>
-              <Text style={styles.discountText}>-{discountPercent}%</Text>
-            </View>
-          )}
-        </View>
-
+        <Text style={styles.drugName}>{drug.trade_name}</Text>
         <Text style={styles.drugIngredient}>{drug.active_ingredient}</Text>
-
-        <View style={styles.priceRow}>
-          <Text style={styles.currentPrice}>{formatPrice(drug.price)}</Text>
-          {hasDiscount && (
-            <Text style={styles.oldPrice}>{formatPrice(drug.price_old!)}</Text>
-          )}
-        </View>
       </TouchableOpacity>
     );
-  }, [formatPrice, navigation]);
+  }, [navigation]);
 
   // Calculate fixed item height for getItemLayout (matches drugCard style + margin)
-  const ITEM_HEIGHT = 110; // Reduced height for minimal cards
+  const ITEM_HEIGHT = 80; // Optimized height
   const getItemLayout = useCallback((data: ArrayLike<Drug> | null | undefined, index: number) => ({
     length: ITEM_HEIGHT,
     offset: ITEM_HEIGHT * index,
@@ -87,11 +63,6 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
   const uniqueIngredients = useMemo(() => 
     [...new Set(drugs.map((d) => d.active_ingredient))]
   , [drugs]);
-
-  const priceRange = useMemo(() => ({
-    min: Math.min(...drugs.map((d) => d.price)),
-    max: Math.max(...drugs.map((d) => d.price)),
-  }), [drugs]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -115,10 +86,8 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
             <Text style={styles.summaryLabel}>Active Ingredients</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>
-              {formatPrice(priceRange.min)} - {formatPrice(priceRange.max)}
-            </Text>
-            <Text style={styles.summaryLabel}>Price Range</Text>
+            <Text style={styles.summaryValue}>{drugs.length}</Text>
+            <Text style={styles.summaryLabel}>Drugs Found</Text>
           </View>
         </View>
       </View>
@@ -204,50 +173,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.white,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border.light,
   },
-  drugHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
   drugName: {
     ...typography.h2,
-    flex: 1,
-  },
-  discountBadge: {
-    backgroundColor: colors.accent.red,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  discountText: {
-    ...typography.small,
-    color: colors.neutral.white,
-    fontWeight: '700',
+    marginBottom: spacing.xs,
   },
   drugIngredient: {
     ...typography.body,
     color: colors.neutral.gray,
-    marginBottom: spacing.sm,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  currentPrice: {
-    ...typography.body,
-    fontWeight: '700',
-    color: colors.primary.green,
-  },
-  oldPrice: {
-    ...typography.small,
-    color: colors.neutral.gray,
-    textDecorationLine: 'line-through',
   },
   emptyState: {
     padding: spacing.xl,
