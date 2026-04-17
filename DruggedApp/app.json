@@ -14,7 +14,8 @@
       "imageWidth": 1024
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.DruggedApp"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,7 +32,10 @@
     "plugins": [
       "expo-font"
     ],
-    "assets": ["./src/assets/drugged.db", "./src/assets/drugs_web_fallback.json"],
+    "assets": [
+      "./src/assets/drugged.db",
+      "./src/assets/drugs_web_fallback.json"
+    ],
     "extra": {
       "eas": {
         "projectId": "28368ae8-0ddc-4af0-b3fe-812f88265d0f"
