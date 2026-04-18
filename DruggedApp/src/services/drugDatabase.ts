@@ -32,6 +32,7 @@ export type SearchField =
 const DB_NAME = 'drugged.db';
 const DB_VERSION = 1; // Increment this when updating the database asset
 let db: SQLite.SQLiteDatabase | null = null;
+let dbInitPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 const dbAsset = require('../assets/drugged.db');
 
@@ -50,50 +51,64 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
   if (db) {
     return db;
   }
-
-  console.log('[DB] Opening database on:', Platform.OS);
-
-  if (Platform.OS === 'web') {
-    const serializedData = await loadAssetAsUint8Array();
-    db = await SQLite.deserializeDatabaseAsync(serializedData);
-    console.log('[DB] Web database opened with serialized data');
-    return db;
+  if (dbInitPromise) {
+    return dbInitPromise;
   }
 
-  if (!documentDirectory) {
-    throw new Error('documentDirectory is null');
-  }
+  dbInitPromise = (async () => {
+    console.log('[DB] Opening database on:', Platform.OS);
 
-  const destPath = documentDirectory + '/' + DB_NAME;
-  const versionPath = documentDirectory + '/' + DB_NAME + '.version';
-  
-  const [destInfo, versionInfo] = await Promise.all([
-    getInfoAsync(destPath),
-    getInfoAsync(versionPath)
-  ]);
-  
-  let existingVersion = 0;
-  if (versionInfo.exists) {
-    try {
-      const versionContent = await readAsStringAsync(versionPath);
-      existingVersion = parseInt(versionContent, 10);
-      if (Number.isNaN(existingVersion)) {
+    if (Platform.OS === 'web') {
+      const serializedData = await loadAssetAsUint8Array();
+      db = await SQLite.deserializeDatabaseAsync(serializedData);
+      console.log('[DB] Web database opened with serialized data');
+      return db;
+    }
+
+    if (!documentDirectory) {
+      throw new Error('documentDirectory is null');
+    }
+
+    const destPath = documentDirectory + '/' + DB_NAME;
+    const versionPath = documentDirectory + '/' + DB_NAME + '.version';
+    
+    const [destInfo, versionInfo] = await Promise.all([
+      getInfoAsync(destPath),
+      getInfoAsync(versionPath)
+    ]);
+    
+    let existingVersion = 0;
+    if (versionInfo.exists) {
+      try {
+        const versionContent = await readAsStringAsync(versionPath);
+        existingVersion = parseInt(versionContent, 10);
+        if (Number.isNaN(existingVersion)) {
+          existingVersion = 0;
+        }
+      } catch {
         existingVersion = 0;
       }
-    } catch {}
+    }
+    
+    if (!destInfo.exists || existingVersion < DB_VERSION) {
+      const asset = Asset.fromModule(dbAsset);
+      await asset.downloadAsync();
+      if (!asset.localUri) throw new Error('Failed to load drugged.db asset');
+      await copyAsync({ from: asset.localUri, to: destPath });
+      await writeAsStringAsync(versionPath, DB_VERSION.toString());
+    }
+    
+    db = await SQLite.openDatabaseAsync(DB_NAME, undefined, documentDirectory);
+    console.log('[DB] Native database opened successfully');
+    return db;
+  })();
+
+  try {
+    return await dbInitPromise;
+  } catch (error) {
+    dbInitPromise = null;
+    throw error;
   }
-  
-  if (!destInfo.exists || existingVersion < DB_VERSION) {
-    const asset = Asset.fromModule(dbAsset);
-    await asset.downloadAsync();
-    if (!asset.localUri) throw new Error('Failed to load drugged.db asset');
-    await copyAsync({ from: asset.localUri, to: destPath });
-    await writeAsStringAsync(versionPath, DB_VERSION.toString());
-  }
-  
-  db = await SQLite.openDatabaseAsync(destPath);
-  console.log('[DB] Native database opened successfully');
-  return db;
 }
 
 export async function initDatabase(): Promise<void> {
@@ -163,6 +178,20 @@ export async function searchDrugs(
   const q = query.trim();
   if (!q) return [];
 
+  const searchableColumns = [
+    'trade_name',
+    'active_ingredient',
+    'category',
+    'subcategory',
+    'manufacturer',
+    'distributor',
+    'route',
+  ] as const;
+
+  if (field !== 'all' && !searchableColumns.includes(field)) {
+    throw new Error(`Invalid search field: ${field}`);
+  }
+
   console.log('[DEBUG] Platform.OS:', Platform.OS, '| field:', field, '| query:', q);
 
   const database = await getNativeDb();
@@ -188,22 +217,22 @@ export async function searchDrugs(
     try {
       if (field === 'all') {
         querySQL = `
-          SELECT d.* FROM drugs d
-          JOIN drugs_fts fts ON d.id = fts.rowid
+          SELECT d.* FROM drugs_fts
+          JOIN drugs d ON d.id = drugs_fts.rowid
           WHERE drugs_fts MATCH ?
-          ORDER BY bm25(drugs_fts, 1, 2, 4, 3, 5, 6, 7, 8), trade_name
+          ORDER BY bm25(drugs_fts, 1, 2, 4, 3, 5, 6, 7, 8), d.trade_name
           LIMIT 50
         `;
         params = [ftsTerm];
       } else {
         querySQL = `
-          SELECT d.* FROM drugs d
-          JOIN drugs_fts fts ON d.id = fts.rowid
-          WHERE ${field} MATCH ?
-          ORDER BY bm25(drugs_fts), trade_name
+          SELECT d.* FROM drugs_fts
+          JOIN drugs d ON d.id = drugs_fts.rowid
+          WHERE drugs_fts MATCH ?
+          ORDER BY bm25(drugs_fts), d.trade_name
           LIMIT 50
         `;
-        params = [ftsTerm];
+        params = [`${field}:${ftsTerm}`];
       }
 
       console.log('[DB] Executing FTS5 query');
