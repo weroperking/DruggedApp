@@ -77,6 +77,9 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
     try {
       const versionContent = await readAsStringAsync(versionPath);
       existingVersion = parseInt(versionContent, 10);
+      if (Number.isNaN(existingVersion)) {
+        existingVersion = 0;
+      }
     } catch {}
   }
   
@@ -97,9 +100,6 @@ export async function initDatabase(): Promise<void> {
   const database = await getNativeDb();
   
   try {
-    // Check if FTS5 is available first
-    await database.execAsync('SELECT fts5()');
-    
     // Create FTS5 virtual table for full-text search if it doesn't exist
     await database.execAsync(`
       CREATE VIRTUAL TABLE IF NOT EXISTS drugs_fts USING fts5(
@@ -116,21 +116,11 @@ export async function initDatabase(): Promise<void> {
         tokenize='unicode61 remove_diacritics 2'
       );
     `);
-    
-    // Populate FTS index with existing data (only runs once)
-    const indexExists = await database.getFirstAsync<{ count: number }>(
-      'SELECT COUNT(*) as count FROM drugs_fts'
-    );
-    
-    if (!indexExists || indexExists.count === 0) {
-      await database.execAsync(`
-        INSERT INTO drugs_fts(rowid, trade_name, active_ingredient, category, subcategory,
-                             manufacturer, distributor, route, search_index)
-        SELECT id, trade_name, active_ingredient, category, subcategory,
-               manufacturer, distributor, route, search_index
-        FROM drugs;
-      `);
-    }
+
+    // Rebuild/sync the FTS5 index using the documented rebuild command
+    await database.execAsync(`
+      INSERT INTO drugs_fts(drugs_fts) VALUES('rebuild');
+    `);
     
     // Create triggers to automatically keep FTS index in sync
     await database.execAsync(`

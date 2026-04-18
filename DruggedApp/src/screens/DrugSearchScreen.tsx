@@ -54,7 +54,7 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const drugCount = route.params?.drugCount ?? 0;
   const inputRef = useRef<TextInput>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentMode = SEARCH_MODES.find(m => m.value === searchField)!;
 

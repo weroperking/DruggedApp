@@ -38,11 +38,15 @@
     "plugins": [
       "expo-font",
       "expo-sqlite",
-      "expo-asset"
-    ],
-    "assets": [
-      "./src/assets/drugged.db",
-      "./src/assets/drugs_web_fallback.json"
+      [
+        "expo-asset",
+        {
+          "assets": [
+            "./src/assets/drugged.db",
+            "./src/assets/drugs_web_fallback.json"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
