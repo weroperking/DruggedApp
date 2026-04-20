@@ -14,22 +14,10 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius, shadows } from '../theme';
-import { searchDrugs, initDatabase, getDrugCount, Drug, SearchField } from '../services/drugDatabase';
-
-type RootStackParamList = {
-  SectionSelect: undefined;
-  Home: undefined;
-  UserInfo: { symptom: string };
-  Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
-  DrugSearch: { drugCount: number };
-  DrugSearchResults: { drugs: Drug[]; query: string };
-  DrugDetail: { drug: Drug };
-  DrugAlternatives: { drug: Drug; mode: 'similar' | 'alternatives' };
-  Disclaimer: undefined;
-};
-
 import { RouteProp } from '@react-navigation/native';
+import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+import { searchDrugs, Drug, SearchField } from '../services/drugDatabase';
+import { RootStackParamList } from '../navigation/types';
 
 type DrugSearchScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DrugSearch'>;
@@ -77,8 +65,39 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   const drugCount = route.params?.drugCount ?? 0;
   const inputRef = useRef<TextInput>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeSearchId = useRef(0);
 
   const currentMode = SEARCH_MODES.find(m => m.value === searchField)!;
+
+  const runSearch = React.useCallback(async (rawQuery: string, field: SearchField) => {
+    const trimmed = rawQuery.trim();
+    if (!trimmed) {
+      setResults([]);
+      setError('Enter a search term.');
+      return;
+    }
+
+    const searchId = ++activeSearchId.current;
+    setLoading(true);
+    setResults([]);
+    setError(null);
+
+    try {
+      console.log('[Search] Searching for:', trimmed, 'in field:', field);
+      const searchResults = await searchDrugs(trimmed, field);
+      if (searchId !== activeSearchId.current) return;
+      console.log('[Search] Found results:', searchResults.length);
+      setResults(searchResults);
+    } catch (error) {
+      if (searchId !== activeSearchId.current) return;
+      console.error('[Search] Error:', error);
+      setError('Search failed. Please try again.');
+    } finally {
+      if (searchId === activeSearchId.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
   // Debounce search query changes
   useEffect(() => {
@@ -95,7 +114,7 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
 
     // Schedule new search after 300ms delay
     searchTimeoutRef.current = setTimeout(() => {
-      handleSearch(query);
+      runSearch(query, searchField);
     }, 300);
 
     // Cleanup timeout on unmount or when query changes
@@ -104,26 +123,10 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [query, searchField]);
+  }, [query, searchField, runSearch]);
 
   const handleSearch = async (searchQuery?: string) => {
-    const q = searchQuery || query;
-    if (!q.trim()) return;
-    
-    setLoading(true);
-    setResults([]);
-    setError(null);
-    try {
-      console.log('[Search] Searching for:', q.trim(), 'in field:', searchField);
-      const searchResults = await searchDrugs(q.trim(), searchField);
-      console.log('[Search] Found results:', searchResults.length);
-      setResults(searchResults);
-    } catch (error) {
-      console.error('[Search] Error:', error);
-      setError(String(error));
-    } finally {
-      setLoading(false);
-    }
+    await runSearch(searchQuery || query, searchField);
   };
 
   const handleViewResults = () => {
@@ -137,22 +140,7 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
       style={styles.quickSearchButton}
       onPress={() => {
         setQuery(searchTerm);
-        setTimeout(async () => {
-          setLoading(true);
-          setResults([]);
-          setError(null);
-          try {
-            console.log('[QuickSearch] Searching for:', searchTerm.trim(), 'in field: all');
-            const searchResults = await searchDrugs(searchTerm.trim(), 'all');
-            console.log('[QuickSearch] Found results:', searchResults.length);
-            setResults(searchResults);
-          } catch (error) {
-            console.error('[QuickSearch] Error:', error);
-            setError(String(error));
-          } finally {
-            setLoading(false);
-          }
-        }, 100);
+        runSearch(searchTerm, 'all');
       }}
       activeOpacity={0.8}
     >

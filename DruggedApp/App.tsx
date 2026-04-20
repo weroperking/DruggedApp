@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   HomeScreen,
   UserInfoScreen,
@@ -16,19 +16,7 @@ import {
 } from './src/screens';
 import { colors } from './src/theme';
 import { Drug, initDatabase, getDrugCount } from './src/services/drugDatabase';
-
-type RootStackParamList = {
-  SectionSelect: undefined;
-  Home: undefined;
-  UserInfo: { symptom: string };
-  Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
-  DrugSearch: { drugCount: number };
-  DrugSearchResults: { drugs: Drug[]; query: string };
-  DrugDetail: { drug: Drug };
-  DrugAlternatives: { drug: Drug; mode: 'similar' | 'alternatives' };
-  Disclaimer: undefined;
-  Menu: undefined;
-};
+import { RootStackParamList } from './src/navigation/types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -36,6 +24,7 @@ export default function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [drugCount, setDrugCount] = useState<number>(0);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -52,13 +41,22 @@ export default function App() {
     };
 
     initializeApp();
-  }, []);
+  }, [retryCount]);
 
   if (dbError) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Failed to load database</Text>
         <Text style={styles.errorDetail}>{dbError}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setDbError(null);
+            setRetryCount(c => c + 1);
+          }}
+        >
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -177,5 +175,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.neutral.gray,
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    backgroundColor: colors.primary.green,
+    borderRadius: 8,
+  },
+  retryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.neutral.white,
   },
 });

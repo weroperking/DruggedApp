@@ -81,6 +81,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           onPress={handleContinue}
           disabled={!selectedSymptom}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Continue"
+          accessibilityState={{ disabled: !selectedSymptom }}
         >
           <Text style={[
             styles.buttonText,
@@ -168,9 +171,8 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     backgroundColor: colors.neutral.gray,
     borderColor: colors.neutral.gray,
-    opacity: 0.5,
   },
   buttonTextDisabled: {
-    color: colors.neutral.white,
+    color: colors.neutral.charcoal,
   },
 });

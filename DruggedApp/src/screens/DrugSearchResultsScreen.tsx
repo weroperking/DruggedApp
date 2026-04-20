@@ -14,18 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 import { Drug } from '../services/drugDatabase';
-
-type RootStackParamList = {
-  SectionSelect: undefined;
-  Home: undefined;
-  UserInfo: { symptom: string };
-  Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
-  DrugSearch: undefined;
-  DrugSearchResults: { drugs: Drug[]; query: string };
-  DrugDetail: { drug: Drug };
-  DrugAlternatives: { drug: Drug; mode: 'similar' | 'alternatives' };
-  Disclaimer: undefined;
-};
+import { RootStackParamList } from '../navigation/types';
 
 type DrugSearchResultsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DrugSearchResults'>;
@@ -57,7 +46,7 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
     }).start(() => setSelectedDrug(null));
   }, [blurAnim]);
 
-  const renderDrugCard = useCallback((drug: Drug, index: number) => {
+  const renderDrugCard = useCallback(({ item: drug, index }: { item: Drug; index: number }) => {
     const handlePress = () => {
       if (selectedDrug) {
         closeMenu();
@@ -129,14 +118,13 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
         <FlatList
           data={drugs}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item, index }) => renderDrugCard(item, index)}
+          renderItem={renderDrugCard}
           style={{ flex: 1 }}
           contentContainerStyle={styles.listContent}
           removeClippedSubviews={true}
           initialNumToRender={10}
           maxToRenderPerBatch={5}
           windowSize={10}
-          nestedScrollEnabled={true}
           getItemLayout={getItemLayout}
           ListEmptyComponent={
             <View style={styles.emptyState}>

@@ -13,12 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 import { Drug } from '../services/drugDatabase';
-
-type RootStackParamList = {
-  DrugSearchResults: { drugs: Drug[]; query: string };
-  DrugDetail: { drug: Drug };
-  DrugAlternatives: { drug: Drug; mode: 'similar' | 'alternatives' };
-};
+import { RootStackParamList } from '../navigation/types';
 
 type DrugDetailScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DrugDetail'>;
@@ -65,12 +60,24 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
     ]).start(() => setShowMenu(false));
   };
 
+  const InfoRow = ({ label, value }: { label: string; value: string | null }) =>
+    value ? (
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value}</Text>
+      </View>
+    ) : null;
+
+  const hasInfo = drug.manufacturer || drug.distributor || drug.category || drug.subcategory || drug.subcategory2 || drug.route;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
         >
           <Text style={styles.backText}>‹ Back</Text>
         </TouchableOpacity>
@@ -93,51 +100,17 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
         </TouchableOpacity>
 
         {/* Details Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Drug Information</Text>
-
-          {drug.manufacturer && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Manufacturer</Text>
-              <Text style={styles.infoValue}>{drug.manufacturer}</Text>
-            </View>
-          )}
-
-          {drug.distributor && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Distributor</Text>
-              <Text style={styles.infoValue}>{drug.distributor}</Text>
-            </View>
-          )}
-
-          {drug.category && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Category</Text>
-              <Text style={styles.infoValue}>{drug.category}</Text>
-            </View>
-          )}
-
-          {drug.subcategory && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Subcategory</Text>
-              <Text style={styles.infoValue}>{drug.subcategory}</Text>
-            </View>
-          )}
-
-          {drug.subcategory2 && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Class</Text>
-              <Text style={styles.infoValue}>{drug.subcategory2}</Text>
-            </View>
-          )}
-
-          {drug.route && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Administration Route</Text>
-              <Text style={styles.infoValue}>{drug.route}</Text>
-            </View>
-          )}
-        </View>
+        {hasInfo && (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Drug Information</Text>
+            <InfoRow label="Manufacturer" value={drug.manufacturer} />
+            <InfoRow label="Distributor" value={drug.distributor} />
+            <InfoRow label="Category" value={drug.category} />
+            <InfoRow label="Subcategory" value={drug.subcategory} />
+            <InfoRow label="Class" value={drug.subcategory2} />
+            <InfoRow label="Administration Route" value={drug.route} />
+          </View>
+        )}
 
         {/* Notes Card */}
         <View style={styles.card}>
