@@ -1,6 +1,6 @@
 {
-  "name": "druggedapp",
-  "version": "1.0.0",
+  "name": "drugged",
+  "version": "3.4.2",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -20,7 +20,7 @@
     "expo-status-bar": "^3.0.9",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-native": "^0.81.5",
+    "react-native": "0.77.0",
     "react-native-safe-area-context": "^5.6.0",
     "react-native-screens": "4.16.0",
     "react-native-web": "^0.21.0"
