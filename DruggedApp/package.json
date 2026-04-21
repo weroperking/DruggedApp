@@ -16,6 +16,7 @@
     "expo-asset": "~12.0.12",
     "expo-file-system": "~19.0.21",
     "expo-font": "^14.0.11",
+    "expo-splash-screen": "~31.0.13",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "^3.0.9",
     "react": "^19.1.0",
@@ -26,7 +27,7 @@
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
+    "@types/react": "^18.3.28",
     "typescript": "~5.9.2"
   },
   "private": true
