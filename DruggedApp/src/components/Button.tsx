@@ -54,12 +54,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   buttonInner: {
-    borderBottomWidth: 4,
-    borderBottomColor: colors.primary.darkGreen,
-    paddingVertical: spacing.md - 4,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     marginHorizontal: -spacing.xl,
-    marginBottom: -4,
   },
   primaryButton: {
     backgroundColor: colors.primary.green,

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, typography, borderRadius } from '../theme';
+import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
 type RootStackParamList = {
   SectionSelect: undefined;
@@ -17,6 +17,7 @@ type RootStackParamList = {
   DrugSearch: undefined;
   DrugSearchResults: { query: string };
   Disclaimer: undefined;
+  Menu: undefined;
 };
 
 type SectionSelectScreenProps = {
@@ -30,7 +31,16 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Welcome to Drugged</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>Welcome to Drugged</Text>
+            <TouchableOpacity
+              style={styles.menuButton}
+              onPress={() => navigation.navigate('Menu')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.menuButtonText}>☰</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.subtitle}>
             Choose how you need help
           </Text>
@@ -39,6 +49,7 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
         <TouchableOpacity
           style={styles.sectionCard}
           onPress={() => navigation.navigate('Home')}
+          activeOpacity={0.8}
         >
           <View style={styles.sectionIcon}>
             <Text style={styles.iconText}>💊</Text>
@@ -55,6 +66,7 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
         <TouchableOpacity
           style={styles.sectionCard}
           onPress={() => navigation.navigate('DrugSearch')}
+          activeOpacity={0.8}
         >
           <View style={styles.sectionIcon}>
             <Text style={styles.iconText}>🔍</Text>
@@ -62,7 +74,7 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
           <View style={styles.sectionInfo}>
             <Text style={styles.sectionTitle}>Drug Search</Text>
             <Text style={styles.sectionDescription}>
-              Search our database of {23596}+ drugs, compare prices, and find alternatives
+              Search our database of {23596}+ drugs and find alternatives
             </Text>
           </View>
           <Text style={styles.arrow}>›</Text>
@@ -91,23 +103,44 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     marginTop: spacing.xl,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
   title: {
     ...typography.h1,
-    marginBottom: spacing.sm,
+  },
+  menuButton: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 3,
+    borderColor: colors.border.light,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.medium,
+  },
+  menuButtonText: {
+    fontSize: 24,
+    color: colors.neutral.charcoal,
   },
   subtitle: {
     ...typography.body,
     color: colors.neutral.gray,
   },
   sectionCard: {
-    backgroundColor: colors.neutral.white,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
+    backgroundColor: colors.neutral.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 3,
     borderColor: colors.border.light,
+    ...shadows.medium,
   },
   sectionIcon: {
     width: 56,

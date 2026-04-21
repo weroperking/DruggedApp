@@ -4,3 +4,6 @@ export { ResultsScreen } from './ResultsScreen';
 export { SectionSelectScreen } from './SectionSelectScreen';
 export { DrugSearchScreen } from './DrugSearchScreen';
 export { DrugSearchResultsScreen } from './DrugSearchResultsScreen';
+export { DrugDetailScreen } from './DrugDetailScreen';
+export { DrugAlternativesScreen } from './DrugAlternativesScreen';
+export { MenuScreen } from './MenuScreen';
