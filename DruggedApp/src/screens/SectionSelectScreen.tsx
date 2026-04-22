@@ -7,18 +7,8 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
-
-type RootStackParamList = {
-  SectionSelect: undefined;
-  Home: undefined;
-  UserInfo: { symptom: string };
-  Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
-  DrugSearch: undefined;
-  DrugSearchResults: { query: string };
-  Disclaimer: undefined;
-  Menu: undefined;
-};
 
 type SectionSelectScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'SectionSelect'>;
@@ -65,7 +55,7 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
 
         <TouchableOpacity
           style={styles.sectionCard}
-          onPress={() => navigation.navigate('DrugSearch')}
+          onPress={() => navigation.navigate('DrugSearch', {})}
           activeOpacity={0.8}
         >
           <View style={styles.sectionIcon}>
@@ -86,6 +76,18 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
           </Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('Donation')}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Donate"
+        accessibilityHint="Open donation screen"
+        hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
+      >
+        <Text style={styles.fabIcon}>❤️</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -178,5 +180,23 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: colors.neutral.gray,
     textAlign: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: spacing.lg,
+    right: spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary.green,
+    borderWidth: 3,
+    borderColor: colors.primary.darkGreen,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.medium,
+  },
+  fabIcon: {
+    fontSize: 24,
+    color: colors.neutral.white,
   },
 });
