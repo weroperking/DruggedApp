@@ -17,7 +17,7 @@ import {
   DonationScreen,
 } from './src/screens';
 import { colors } from './src/theme';
-import { Drug, initDatabase, getDrugCount } from './src/services/drugDatabase';
+import { initDatabase, getDrugCount } from './src/services/drugDatabase';
 import { RootStackParamList } from './src/navigation/types';
 
 // Configure notifications handler
@@ -151,11 +151,10 @@ export default function App() {
         navigationRef.current.navigate('Donation');
       }
     };
-    
-    checkColdStartNotification();
 
     if (dbInitialized) {
       setupNotifications();
+      checkColdStartNotification();
     }
 
     return () => {
