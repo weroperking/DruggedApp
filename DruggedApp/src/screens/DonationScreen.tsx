@@ -16,7 +16,11 @@ type DonationScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Donation'>;
 };
 
-const DONATION_PHONE = process.env.DONATION_PHONE || '+20 123 456 7890';
+const DONATION_PHONE = process.env.EXPO_PUBLIC_DONATION_PHONE || '+201277707096';
+
+if (__DEV__ && !process.env.EXPO_PUBLIC_DONATION_PHONE) {
+  console.warn('EXPO_PUBLIC_DONATION_PHONE environment variable is missing, using placeholder');
+}
 
 export const DonationScreen: React.FC<DonationScreenProps> = ({ navigation }) => {
   const [qrImageError, setQrImageError] = useState(false);

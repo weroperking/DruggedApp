@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity, Platform, Alert } from 'react-native';
+import { View, ActivityIndicator, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import {
   HomeScreen,
@@ -65,18 +65,18 @@ export default function App() {
 
   useEffect(() => {
     const setupNotifications = async () => {
+      // Skip notifications setup on web
+      if (Platform.OS === 'web') {
+        console.log('[Notifications] Notifications not supported on web');
+        return;
+      }
+
       // Request permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
       if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync({
-          android: {
-            allowAlert: true,
-            allowSound: false,
-            allowBadge: false,
-          },
-        });
+        const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
       }
 
@@ -91,32 +91,38 @@ export default function App() {
           name: 'Donation reminders',
           description: 'Gentle reminders to support the app',
           importance: Notifications.AndroidImportance.LOW,
-          vibrationPattern: [],
           lightColor: colors.primary.green,
         });
       }
 
-      // Cancel existing notifications to avoid duplicates
-      await Notifications.cancelAllScheduledNotificationsAsync();
+      // Check for existing donation reminder
+      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+      const hasExistingReminder = scheduledNotifications.some(
+        notification => notification.content.data?.tag === 'donation-reminder'
+      );
 
-      // Schedule recurring notifications (every 4-6 days, random interval)
-      const randomMessage = EMPATHY_MESSAGES[Math.floor(Math.random() * EMPATHY_MESSAGES.length)];
-      const intervalDays = Math.floor(Math.random() * 3) + 4; // 4,5,6 days
+      if (!hasExistingReminder) {
+        // Schedule recurring notifications (every 4-6 days, random interval)
+        const randomMessage = EMPATHY_MESSAGES[Math.floor(Math.random() * EMPATHY_MESSAGES.length)];
+        const intervalDays = Math.floor(Math.random() * 3) + 4; // 4,5,6 days
 
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Drugged App',
-          body: randomMessage,
-          data: { screen: 'Donation' },
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          repeats: true,
-          seconds: intervalDays * 24 * 60 * 60,
-        },
-      });
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Drugged App',
+            body: randomMessage,
+            data: { screen: 'Donation', tag: 'donation-reminder' },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            repeats: true,
+            seconds: intervalDays * 24 * 60 * 60,
+          },
+        });
 
-      console.log(`[Notifications] Scheduled donation reminder every ${intervalDays} days`);
+        console.log(`[Notifications] Scheduled donation reminder every ${intervalDays} days`);
+      } else {
+        console.log('[Notifications] Donation reminder already scheduled, skipping');
+      }
     };
 
     // Handle notification responses for navigation
@@ -128,10 +134,18 @@ export default function App() {
     };
 
     // Setup listeners
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    let responseSubscription: { remove: () => void } | null = null;
+    
+    // Only add listener on native platforms
+    if (Platform.OS !== 'web') {
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
+    }
 
     // Check for cold start notification
     const checkColdStartNotification = async () => {
+      // Skip on web
+      if (Platform.OS === 'web') return;
+      
       const lastResponse = await Notifications.getLastNotificationResponseAsync();
       if (lastResponse && lastResponse.notification.request.content.data?.screen === 'Donation' && navigationRef.current) {
         navigationRef.current.navigate('Donation');
@@ -145,7 +159,9 @@ export default function App() {
     }
 
     return () => {
-      responseSubscription.remove();
+      if (responseSubscription) {
+        responseSubscription.remove();
+      }
     };
   }, [dbInitialized]);
 
