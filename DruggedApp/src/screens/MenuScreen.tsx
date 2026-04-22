@@ -9,18 +9,14 @@ import {
   Animated,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
-
-type RootStackParamList = {
-  SectionSelect: undefined;
-  Menu: undefined;
-};
 
 type MenuScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Menu'>;
 };
 
-type BugType = 'drug' | 'logic' | 'consult' | null;
+type BugType = 'drug' | 'logic' | 'consult' | 'donate' | null;
 
 export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
   const [selectedBug, setSelectedBug] = useState<BugType>(null);
@@ -42,6 +38,8 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
       Linking.openURL('mailto:weroperking@gmail.com?subject=App%20Logic%20Bug%20Report');
     } else if (selectedBug === 'consult') {
       Linking.openURL('mailto:weroperking@gmail.com?subject=Consultation%20Request');
+    } else if (selectedBug === 'donate') {
+      navigation.navigate('Donation');
     }
   };
 
@@ -73,6 +71,12 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
       description: 'General inquiries, feedback, or consultation requests',
       icon: '✉️',
     },
+    {
+      type: 'donate' as BugType,
+      title: 'Support Development',
+      description: 'Make a donation to help keep this app free and maintained',
+      icon: '💝',
+    },
   ];
 
   return (
@@ -86,7 +90,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.title}>Menu</Text>
         <Text style={styles.subtitle}>
-          {selectedBug ? 'Confirm your selection' : 'Report an issue or contact us'}
+          {selectedBug ? 'Confirm your selection' : 'Report an issue, contact us, or support development'}
         </Text>
       </View>
 
@@ -121,10 +125,14 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
               <Text style={styles.confirmDescription}>
                 {bugOptions.find(o => o.type === selectedBug)?.description}
               </Text>
-              <Text style={styles.emailText}>
-                This will open your email app to send a report to:
-              </Text>
-              <Text style={styles.emailAddress}>weroperking@gmail.com</Text>
+              {selectedBug !== 'donate' && (
+                <>
+                  <Text style={styles.emailText}>
+                    This will open your email app to send a report to:
+                  </Text>
+                  <Text style={styles.emailAddress}>weroperking@gmail.com</Text>
+                </>
+              )}
             </View>
 
             <TouchableOpacity
@@ -132,7 +140,9 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
               onPress={handleConfirm}
               activeOpacity={0.8}
             >
-              <Text style={styles.confirmButtonText}>Send Report</Text>
+              <Text style={styles.confirmButtonText}>
+                {selectedBug === 'donate' ? 'Go to Donations' : 'Send Report'}
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         )}

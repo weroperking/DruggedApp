@@ -7,3 +7,4 @@ export { DrugSearchResultsScreen } from './DrugSearchResultsScreen';
 export { DrugDetailScreen } from './DrugDetailScreen';
 export { DrugAlternativesScreen } from './DrugAlternativesScreen';
 export { MenuScreen } from './MenuScreen';
+export { DonationScreen } from './DonationScreen';
