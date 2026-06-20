@@ -3,6 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 const { documentDirectory, getInfoAsync, copyAsync, writeAsStringAsync, readAsStringAsync } = FileSystem;
 import * as SQLite from 'expo-sqlite';
 import { Asset } from 'expo-asset';
+import WEB_SAMPLE from '../assets/drugs_web_fallback.json';
 
 export interface Drug {
   id: number;
@@ -18,6 +19,9 @@ export interface Drug {
   route: string | null;
   search_index: string | null;
 }
+
+// Track if we're using web fallback mode
+let webFallbackMode = false;
 
 export type SearchField =
   | 'all'
@@ -58,11 +62,19 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
   dbInitPromise = (async () => {
     console.log('[DB] Opening database on:', Platform.OS);
 
+    // Check if running on web and try WASM-based SQLite
     if (Platform.OS === 'web') {
-      const serializedData = await loadAssetAsUint8Array();
-      db = await SQLite.deserializeDatabaseAsync(serializedData);
-      console.log('[DB] Web database opened with serialized data');
-      return db;
+      try {
+        const serializedData = await loadAssetAsUint8Array();
+        db = await SQLite.deserializeDatabaseAsync(serializedData);
+        console.log('[DB] Web database opened with serialized data');
+        return db;
+      } catch (error) {
+        console.warn('[DB] Web SQLite failed, falling back to sample data:', error);
+        webFallbackMode = true;
+        // Return a mock database with sample data - we'll handle this in searchDrugs
+        throw error;
+      }
     }
 
     if (!documentDirectory) {
@@ -107,6 +119,10 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
     return await dbInitPromise;
   } catch (error) {
     dbInitPromise = null;
+    // If we're in web fallback mode, re-throw to let search functions handle it
+    if (Platform.OS === 'web') {
+      webFallbackMode = true;
+    }
     throw error;
   }
 }
@@ -157,57 +173,67 @@ function getEndChar(pattern: string): string | null {
 }
 
 export async function initDatabase(): Promise<void> {
-  const database = await getNativeDb();
-  
   try {
-    // Create FTS5 virtual table for full-text search if it doesn't exist
-    await database.execAsync(`
-      CREATE VIRTUAL TABLE IF NOT EXISTS drugs_fts USING fts5(
-        trade_name,
-        active_ingredient,
-        category,
-        subcategory,
-        manufacturer,
-        distributor,
-        route,
-        search_index,
-        content='drugs',
-        content_rowid='id',
-        tokenize='unicode61 remove_diacritics 2'
-      );
-    `);
-
-    // Rebuild/sync the FTS5 index using the documented rebuild command
-    await database.execAsync(`
-      INSERT INTO drugs_fts(drugs_fts) VALUES('rebuild');
-    `);
+    const database = await getNativeDb();
     
-    // Create triggers to automatically keep FTS index in sync
-    await database.execAsync(`
-      CREATE TRIGGER IF NOT EXISTS drugs_fts_insert AFTER INSERT ON drugs BEGIN
-        INSERT INTO drugs_fts(rowid, trade_name, active_ingredient, category, subcategory,
-                             manufacturer, distributor, route, search_index)
-        VALUES (new.id, new.trade_name, new.active_ingredient, new.category, new.subcategory,
-                new.manufacturer, new.distributor, new.route, new.search_index);
-      END;
+    try {
+      // Create FTS5 virtual table for full-text search if it doesn't exist
+      await database.execAsync(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS drugs_fts USING fts5(
+          trade_name,
+          active_ingredient,
+          category,
+          subcategory,
+          manufacturer,
+          distributor,
+          route,
+          search_index,
+          content='drugs',
+          content_rowid='id',
+          tokenize='unicode61 remove_diacritics 2'
+        );
+      `);
 
-      CREATE TRIGGER IF NOT EXISTS drugs_fts_update AFTER UPDATE ON drugs BEGIN
-        DELETE FROM drugs_fts WHERE rowid = old.id;
-        INSERT INTO drugs_fts(rowid, trade_name, active_ingredient, category, subcategory,
-                             manufacturer, distributor, route, search_index)
-        VALUES (new.id, new.trade_name, new.active_ingredient, new.category, new.subcategory,
-                new.manufacturer, new.distributor, new.route, new.search_index);
-      END;
+      // Rebuild/sync the FTS5 index using the documented rebuild command
+      await database.execAsync(`
+        INSERT INTO drugs_fts(drugs_fts) VALUES('rebuild');
+      `);
 
-      CREATE TRIGGER IF NOT EXISTS drugs_fts_delete AFTER DELETE ON drugs BEGIN
-        DELETE FROM drugs_fts WHERE rowid = old.id;
-      END;
-    `);
-    
-    console.log('[DB] FTS5 initialized successfully');
+      // Create triggers to automatically keep FTS index in sync
+      await database.execAsync(`
+        CREATE TRIGGER IF NOT EXISTS drugs_fts_insert AFTER INSERT ON drugs BEGIN
+          INSERT INTO drugs_fts(rowid, trade_name, active_ingredient, category, subcategory,
+                               manufacturer, distributor, route, search_index)
+          VALUES (new.id, new.trade_name, new.active_ingredient, new.category, new.subcategory,
+                  new.manufacturer, new.distributor, new.route, new.search_index);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS drugs_fts_update AFTER UPDATE ON drugs BEGIN
+          DELETE FROM drugs_fts WHERE rowid = old.id;
+          INSERT INTO drugs_fts(rowid, trade_name, active_ingredient, category, subcategory,
+                               manufacturer, distributor, route, search_index)
+          VALUES (new.id, new.trade_name, new.active_ingredient, new.category, new.subcategory,
+                  new.manufacturer, new.distributor, new.route, new.search_index);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS drugs_fts_delete AFTER DELETE ON drugs BEGIN
+          DELETE FROM drugs_fts WHERE rowid = old.id;
+        END;
+      `);
+
+      console.log('[DB] FTS5 initialized successfully');
+    } catch (error) {
+      console.warn('[DB] FTS5 not available, falling back to standard search:', error);
+      // FTS5 not available - continue without it, search function will use LIKE fallback
+    }
   } catch (error) {
-    console.warn('[DB] FTS5 not available, falling back to standard search:', error);
-    // FTS5 not available - continue without it, search function will use LIKE fallback
+    // If on web and database fails, use fallback mode
+    if (Platform.OS === 'web') {
+      console.warn('[DB] Web database unavailable, using fallback sample data');
+      webFallbackMode = true;
+      return;
+    }
+    throw error;
   }
 }
 
@@ -217,6 +243,37 @@ export async function searchDrugs(
 ): Promise<Drug[]> {
   const q = query.trim();
   if (!q) return [];
+
+  // Web fallback mode - use JavaScript filtering on sample data
+  if (webFallbackMode) {
+    console.log('[DEBUG] Web fallback mode - Platform.OS:', Platform.OS);
+    console.log('[DEBUG] Query:', q, '| field:', field);
+    console.log('[DEBUG] WEB_SAMPLE length:', WEB_SAMPLE.length);
+    
+    const normalizedQuery = q.toLowerCase();
+    const results = WEB_SAMPLE.filter((drug: Drug) => {
+      if (field === 'all') {
+        return (
+          (drug.trade_name && drug.trade_name.toLowerCase().includes(normalizedQuery)) ||
+          (drug.active_ingredient && drug.active_ingredient.toLowerCase().includes(normalizedQuery)) ||
+          (drug.category && drug.category.toLowerCase().includes(normalizedQuery)) ||
+          (drug.manufacturer && drug.manufacturer.toLowerCase().includes(normalizedQuery)) ||
+          (drug.search_index && drug.search_index.toLowerCase().includes(normalizedQuery))
+        );
+      }
+      const fieldValue = drug[field as keyof Drug];
+      return fieldValue && String(fieldValue).toLowerCase().includes(normalizedQuery);
+    }).sort((a, b) => {
+      // Priority: exact match on trade_name, then partial match
+      const aExact = a.trade_name.toLowerCase() === normalizedQuery ? 0 : 1;
+      const bExact = b.trade_name.toLowerCase() === normalizedQuery ? 0 : 1;
+      if (aExact !== bExact) return aExact - bExact;
+      return a.trade_name.localeCompare(b.trade_name);
+    });
+    
+    console.log('[DEBUG] Web results:', results.length);
+    return results.slice(0, 50);
+  }
 
   const searchableColumns = [
     'trade_name',
@@ -416,11 +473,18 @@ export async function searchDrugs(
 }
 
 export async function getDrugById(id: number): Promise<Drug | null> {
+  if (webFallbackMode) {
+    return WEB_SAMPLE.find((drug: Drug) => drug.id === id) ?? null;
+  }
   const db = await getNativeDb();
   return db.getFirstAsync<Drug>('SELECT * FROM drugs WHERE id = ?', [id]);
 }
 
 export async function getDrugsByActiveIngredient(ingredient: string): Promise<Drug[]> {
+  if (webFallbackMode) {
+    return WEB_SAMPLE.filter((drug: Drug) => drug.active_ingredient === ingredient)
+      .sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  }
   const db = await getNativeDb();
   return db.getAllAsync<Drug>(
     'SELECT * FROM drugs WHERE active_ingredient = ? ORDER BY price ASC',
@@ -429,6 +493,13 @@ export async function getDrugsByActiveIngredient(ingredient: string): Promise<Dr
 }
 
 export async function getSimilarDrugs(drugId: number): Promise<Drug[]> {
+  if (webFallbackMode) {
+    const source = WEB_SAMPLE.find((drug: Drug) => drug.id === drugId);
+    if (!source?.active_ingredient) return [];
+    return WEB_SAMPLE.filter((drug: Drug) => 
+      drug.active_ingredient === source.active_ingredient && drug.id !== drugId
+    ).sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+  }
   const db = await getNativeDb();
   const source = await db.getFirstAsync<{ active_ingredient: string }>(
     'SELECT active_ingredient FROM drugs WHERE id = ?', [drugId]
@@ -444,6 +515,22 @@ export async function getSimilarDrugs(drugId: number): Promise<Drug[]> {
 }
 
 export async function getAlternativeDrugs(drugId: number): Promise<Drug[]> {
+  if (webFallbackMode) {
+    const source = WEB_SAMPLE.find((drug: Drug) => drug.id === drugId);
+    if (!source) return [];
+
+    // Get unique drugs with matching category/subcategory but different active ingredient
+    const alternatives = WEB_SAMPLE.filter((drug: Drug) => {
+      if (drug.active_ingredient === source.active_ingredient) return false;
+      if (drug.id === drugId) return false;
+      if (source.subcategory2 && drug.subcategory2 === source.subcategory2) return true;
+      if (source.subcategory && drug.subcategory === source.subcategory) return true;
+      if (source.category && drug.category === source.category) return true;
+      return false;
+    }).sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    
+    return alternatives;
+  }
   const db = await getNativeDb();
   const source = await db.getFirstAsync<{ 
     active_ingredient: string; 
@@ -479,6 +566,11 @@ export async function getAlternativeDrugs(drugId: number): Promise<Drug[]> {
 }
 
 export async function getDrugsByCategory(category: string, limit = 50): Promise<Drug[]> {
+  if (webFallbackMode) {
+    return WEB_SAMPLE.filter((drug: Drug) => drug.category === category)
+      .sort((a, b) => a.trade_name.localeCompare(b.trade_name))
+      .slice(0, limit);
+  }
   const db = await getNativeDb();
   return db.getAllAsync<Drug>(
     'SELECT * FROM drugs WHERE category = ? ORDER BY trade_name LIMIT ?',
@@ -487,6 +579,17 @@ export async function getDrugsByCategory(category: string, limit = 50): Promise<
 }
 
 export async function getCategories(): Promise<{ category: string; count: number }[]> {
+  if (webFallbackMode) {
+    const categoryMap = new Map<string, number>();
+    WEB_SAMPLE.forEach((drug: Drug) => {
+      if (drug.category) {
+        categoryMap.set(drug.category, (categoryMap.get(drug.category) ?? 0) + 1);
+      }
+    });
+    return Array.from(categoryMap.entries())
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => b.count - a.count);
+  }
   const db = await getNativeDb();
   return db.getAllAsync<{ category: string; count: number }>(
     `SELECT category, COUNT(*) as count FROM drugs
@@ -497,6 +600,12 @@ export async function getCategories(): Promise<{ category: string; count: number
 }
 
 export async function getPriceDrops(limit = 20): Promise<Drug[]> {
+  if (webFallbackMode) {
+    return WEB_SAMPLE.filter((drug: Drug) => 
+      drug.price_old !== null && drug.price_old > (drug.price ?? 0)
+    ).sort((a, b) => ((a.price_old ?? 0) - (a.price ?? 0)) - ((b.price_old ?? 0) - (b.price ?? 0)))
+     .slice(0, limit);
+  }
   const db = await getNativeDb();
   return db.getAllAsync<Drug>(
     `SELECT * FROM drugs
@@ -508,6 +617,10 @@ export async function getPriceDrops(limit = 20): Promise<Drug[]> {
 }
 
 export async function getDrugCount(): Promise<number> {
+  if (webFallbackMode) {
+    console.log('[DB] Web fallback - returning sample count:', WEB_SAMPLE.length);
+    return WEB_SAMPLE.length;
+  }
   try {
     const db = await getNativeDb();
     const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM drugs');
