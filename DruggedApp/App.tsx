@@ -16,11 +16,10 @@ import {
   MenuScreen,
   DonationScreen,
 } from './src/screens';
-import { colors } from './src/theme';
+import { colors, spacing } from './src/theme';
 import { initDatabase, getDrugCount } from './src/services/drugDatabase';
 import { RootStackParamList } from './src/navigation/types';
 
-// Configure notifications handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -65,13 +64,11 @@ export default function App() {
 
   useEffect(() => {
     const setupNotifications = async () => {
-      // Skip notifications setup on web
       if (Platform.OS === 'web') {
         console.log('[Notifications] Notifications not supported on web');
         return;
       }
 
-      // Request permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       
@@ -85,7 +82,6 @@ export default function App() {
         return;
       }
 
-      // Android notification channel setup
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('donation-reminders', {
           name: 'Donation reminders',
@@ -95,16 +91,14 @@ export default function App() {
         });
       }
 
-      // Check for existing donation reminder
       const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
       const hasExistingReminder = scheduledNotifications.some(
         notification => notification.content.data?.tag === 'donation-reminder'
       );
 
       if (!hasExistingReminder) {
-        // Schedule recurring notifications (every 4-6 days, random interval)
         const randomMessage = EMPATHY_MESSAGES[Math.floor(Math.random() * EMPATHY_MESSAGES.length)];
-        const intervalDays = Math.floor(Math.random() * 3) + 4; // 4,5,6 days
+        const intervalDays = Math.floor(Math.random() * 3) + 4;
 
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -125,7 +119,6 @@ export default function App() {
       }
     };
 
-    // Handle notification responses for navigation
     const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
       const screen = response.notification.request.content.data?.screen;
       if (screen === 'Donation' && navigationRef.current) {
@@ -133,17 +126,13 @@ export default function App() {
       }
     };
 
-    // Setup listeners
     let responseSubscription: { remove: () => void } | null = null;
     
-    // Only add listener on native platforms
     if (Platform.OS !== 'web') {
       responseSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
     }
 
-    // Check for cold start notification
     const checkColdStartNotification = async () => {
-      // Skip on web
       if (Platform.OS === 'web') return;
       
       const lastResponse = await Notifications.getLastNotificationResponseAsync();
@@ -185,8 +174,15 @@ export default function App() {
   if (!dbInitialized) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={colors.primary.green} />
-        <Text style={styles.loadingText}>Preparing drug database...</Text>
+        <View style={styles.splashContent}>
+          <View style={styles.splashIcon}>
+            <Text style={styles.splashEmoji}>💊</Text>
+          </View>
+          <Text style={styles.welcomeText}>Welcome to Trust</Text>
+          <ActivityIndicator size="large" color={colors.primary.green} />
+          <Text style={styles.loadingText}>Preparing drug database...</Text>
+          <Text style={styles.loadingSubtext}>Loading medication data</Text>
+        </View>
       </View>
     );
   }
@@ -278,10 +274,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.neutral.offWhite,
+    padding: spacing.lg,
+  },
+  splashContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  splashIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    backgroundColor: colors.primary.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+  },
+  splashEmoji: {
+    fontSize: 40,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.neutral.black,
+    marginBottom: spacing.lg,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
+    marginTop: spacing.lg,
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.neutral.black,
+    marginBottom: spacing.xs,
+  },
+  loadingSubtext: {
+    fontSize: 14,
     color: colors.neutral.gray,
   },
   errorContainer: {

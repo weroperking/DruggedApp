@@ -92,3 +92,8 @@ export const shadows = {
     shadowRadius: 0,
   },
 };
+export const layout = {
+  maxWidth: 480,
+  screenPadding: spacing.lg,
+  minButtonHeight: 48,
+};

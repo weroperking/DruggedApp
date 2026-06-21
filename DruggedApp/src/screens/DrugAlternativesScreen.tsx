@@ -128,19 +128,21 @@ const styles = StyleSheet.create({
   drugCard: {
     backgroundColor: colors.neutral.white,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 3,
     borderColor: colors.border.light,
     ...shadows.medium,
   },
   drugName: {
     ...typography.h2,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    fontWeight: '700',
   },
   drugIngredient: {
     ...typography.body,
     color: colors.neutral.gray,
+    lineHeight: 20,
   },
 
   emptyState: {

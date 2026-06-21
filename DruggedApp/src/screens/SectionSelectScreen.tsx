@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
-import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+import { colors, spacing, typography, borderRadius, shadows, layout } from '../theme';
 
 type SectionSelectScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'SectionSelect'>;
@@ -36,39 +36,41 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.sectionCard}
-          onPress={() => navigation.navigate('Home')}
-          activeOpacity={0.8}
-        >
-          <View style={styles.sectionIcon}>
-            <Text style={styles.iconText}>💊</Text>
-          </View>
-          <View style={styles.sectionInfo}>
-            <Text style={styles.sectionTitle}>OTC Recommendation</Text>
-            <Text style={styles.sectionDescription}>
-              Find safe over-the-counter medications based on your symptoms and health profile
-            </Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
+        <View style={styles.cardsContainer}>
+          <TouchableOpacity
+            style={styles.sectionCard}
+            onPress={() => navigation.navigate('Home')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.sectionIcon}>
+              <Text style={styles.iconText}>💊</Text>
+            </View>
+            <View style={styles.sectionInfo}>
+              <Text style={styles.sectionTitle}>OTC Recommendation</Text>
+              <Text style={styles.sectionDescription}>
+                Find safe over-the-counter medications based on your symptoms and health profile
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.sectionCard}
-          onPress={() => navigation.navigate('DrugSearch', {})}
-          activeOpacity={0.8}
-        >
-          <View style={styles.sectionIcon}>
-            <Text style={styles.iconText}>🔍</Text>
-          </View>
-          <View style={styles.sectionInfo}>
-            <Text style={styles.sectionTitle}>Drug Search</Text>
-            <Text style={styles.sectionDescription}>
-              Search our database of {23596}+ drugs and find alternatives
-            </Text>
-          </View>
-          <Text style={styles.arrow}>›</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.sectionCard}
+            onPress={() => navigation.navigate('DrugSearch', {})}
+            activeOpacity={0.8}
+          >
+            <View style={styles.sectionIcon}>
+              <Text style={styles.iconText}>🔍</Text>
+            </View>
+            <View style={styles.sectionInfo}>
+              <Text style={styles.sectionTitle}>Drug Search</Text>
+              <Text style={styles.sectionDescription}>
+                Search our database of medications and find alternatives
+              </Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.disclaimer}>
           <Text style={styles.disclaimerText}>
@@ -99,20 +101,26 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    maxWidth: layout.maxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     marginBottom: spacing.xl,
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.sm,
+    paddingRight: spacing.sm,
   },
   title: {
     ...typography.h1,
+    flex: 1,
+    marginRight: spacing.sm,
   },
   menuButton: {
     width: 48,
@@ -124,6 +132,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.medium,
+    marginLeft: spacing.sm,
   },
   menuButtonText: {
     fontSize: 24,
@@ -133,16 +142,22 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.neutral.gray,
   },
+  cardsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   sectionCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.neutral.white,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
     borderWidth: 3,
     borderColor: colors.border.light,
     ...shadows.medium,
+    minHeight: 88,
+    gap: spacing.md,
   },
   sectionIcon: {
     width: 56,
@@ -162,10 +177,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     ...typography.h3,
     marginBottom: spacing.xs,
+    fontWeight: '700',
   },
   sectionDescription: {
     ...typography.small,
     color: colors.neutral.gray,
+    lineHeight: 18,
   },
   arrow: {
     fontSize: 28,
@@ -175,6 +192,7 @@ const styles = StyleSheet.create({
   disclaimer: {
     marginTop: 'auto',
     padding: spacing.md,
+    paddingBottom: 80,
   },
   disclaimerText: {
     ...typography.small,
@@ -183,8 +201,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: spacing.lg,
-    right: spacing.lg,
+    bottom: 32,
+    right: 32,
     width: 56,
     height: 56,
     borderRadius: 28,

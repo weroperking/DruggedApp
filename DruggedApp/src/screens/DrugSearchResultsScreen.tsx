@@ -73,8 +73,7 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
     );
   }, [navigation, selectedDrug, closeMenu, handleLongPress]);
 
-  // Calculate fixed item height for getItemLayout (matches drugCard style + margin)
-  const ITEM_HEIGHT = 80; // Optimized height
+  const ITEM_HEIGHT = 80;
   const getItemLayout = useCallback((data: ArrayLike<Drug> | null | undefined, index: number) => ({
     length: ITEM_HEIGHT,
     offset: ITEM_HEIGHT * index,
@@ -133,7 +132,6 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
         />
       </View>
 
-      {/* Blur Overlay and Action Menu */}
       {selectedDrug && (
         <Animated.View style={[
           styles.overlay,
@@ -218,7 +216,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     backgroundColor: colors.primary.green,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
+    padding: spacing.lg,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -244,8 +242,8 @@ const styles = StyleSheet.create({
   drugCard: {
     backgroundColor: colors.neutral.white,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 3,
     borderColor: colors.border.light,
     ...shadows.medium,
@@ -258,11 +256,13 @@ const styles = StyleSheet.create({
   },
   drugName: {
     ...typography.h2,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    fontWeight: '700',
   },
   drugIngredient: {
     ...typography.body,
     color: colors.neutral.gray,
+    lineHeight: 20,
   },
   emptyState: {
     padding: spacing.xl,
