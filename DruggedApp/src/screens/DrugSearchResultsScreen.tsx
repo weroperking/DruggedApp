@@ -9,6 +9,7 @@ import {
   TouchableWithoutFeedback,
   Animated,
 } from 'react-native';
+import { DrugActionMenu } from '../components/DrugActionMenu';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
@@ -84,6 +85,15 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
     [...new Set(drugs.map((d) => d.active_ingredient))]
   , [drugs]);
 
+  const handleMenuNavigate = (screen: string, drug: Drug, mode?: 'similar' | 'alternatives') => {
+    closeMenu();
+    if (screen === 'DrugAlternatives' && mode) {
+      navigation.navigate('DrugAlternatives', { drug, mode });
+    } else {
+      navigation.navigate(screen as any, { drug });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -132,56 +142,13 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
         />
       </View>
 
-      {selectedDrug && (
-        <Animated.View style={[
-          styles.overlay,
-          { opacity: blurAnim }
-        ]}>
-          <TouchableWithoutFeedback onPress={closeMenu}>
-            <View style={StyleSheet.absoluteFill} />
-          </TouchableWithoutFeedback>
-          
-          <View style={styles.menuContainer}>
-            <View style={styles.selectedCardPreview}>
-              <Text style={styles.previewName}>{selectedDrug.trade_name}</Text>
-              <Text style={styles.previewIngredient}>{selectedDrug.active_ingredient}</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                closeMenu();
-                navigation.navigate('DrugAlternatives', { drug: selectedDrug, mode: 'similar' });
-              }}
-            >
-              <Text style={styles.menuItemText}>Similar</Text>
-              <Text style={styles.menuItemSubtext}>Same active ingredient</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                closeMenu();
-                navigation.navigate('DrugAlternatives', { drug: selectedDrug, mode: 'alternatives' });
-              }}
-            >
-              <Text style={styles.menuItemText}>Alternatives</Text>
-              <Text style={styles.menuItemSubtext}>Same function, different ingredient</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemLast]}
-              onPress={() => {
-                closeMenu();
-                navigation.navigate('DrugDetail', { drug: selectedDrug });
-              }}
-            >
-              <Text style={styles.menuItemText}>Details</Text>
-              <Text style={styles.menuItemSubtext}>View full information</Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-      )}
+      <DrugActionMenu
+        drug={selectedDrug}
+        visible={!!selectedDrug}
+        onClose={closeMenu}
+        blurAnim={blurAnim}
+        onNavigate={handleMenuNavigate}
+      />
     </SafeAreaView>
   );
 };
@@ -269,55 +236,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    ...typography.body,
-    color: colors.neutral.gray,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-    zIndex: 1000,
-  },
-  menuContainer: {
-    width: '100%',
-    backgroundColor: colors.neutral.white,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-  },
-  selectedCardPreview: {
-    padding: spacing.lg,
-    backgroundColor: colors.primary.green,
-  },
-  previewName: {
-    ...typography.h2,
-    color: colors.neutral.white,
-    marginBottom: spacing.xs,
-  },
-  previewIngredient: {
-    ...typography.body,
-    color: colors.neutral.white,
-    opacity: 0.9,
-  },
-  menuItem: {
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  menuItemLast: {
-    borderBottomWidth: 0,
-  },
-  menuItemText: {
-    ...typography.h2,
-    marginBottom: spacing.xs,
-  },
-  menuItemSubtext: {
     ...typography.body,
     color: colors.neutral.gray,
   },

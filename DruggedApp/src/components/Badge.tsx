@@ -57,27 +57,27 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, text }) => {
 const styles = StyleSheet.create({
   pillBadge: {
     borderRadius: borderRadius.full,
-    paddingVertical: spacing.sm - 2,
-    paddingHorizontal: spacing.md - 2,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     alignSelf: 'flex-start',
   },
   pillText: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '700',
     color: colors.neutral.white,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
   statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 10,
     fontWeight: '600',
     color: colors.neutral.charcoal,
   },

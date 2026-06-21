@@ -123,12 +123,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   cardWrapperLeft: {
-    width: '48%',
+    flexBasis: '48%',
     marginRight: '2%',
     marginBottom: spacing.md,
   },
   cardWrapperRight: {
-    width: '48%',
+    flexBasis: '48%',
     marginLeft: '2%',
     marginBottom: spacing.md,
   },

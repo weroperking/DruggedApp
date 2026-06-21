@@ -12,6 +12,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/types';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
+const CONTACT_EMAIL = process.env.EXPO_PUBLIC_CONTACT_EMAIL || 'weroperking@gmail.com';
+
+if (__DEV__ && !process.env.EXPO_PUBLIC_CONTACT_EMAIL) {
+  console.warn('EXPO_PUBLIC_CONTACT_EMAIL environment variable is missing, using placeholder');
+}
+
 type MenuScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Menu'>;
 };
@@ -33,11 +39,11 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
 
   const handleConfirm = () => {
     if (selectedBug === 'drug') {
-      Linking.openURL('mailto:weroperking@gmail.com?subject=Drug%20Data%20Bug%20Report');
+      Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Drug%20Data%20Bug%20Report`);
     } else if (selectedBug === 'logic') {
-      Linking.openURL('mailto:weroperking@gmail.com?subject=App%20Logic%20Bug%20Report');
+      Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=App%20Logic%20Bug%20Report`);
     } else if (selectedBug === 'consult') {
-      Linking.openURL('mailto:weroperking@gmail.com?subject=Consultation%20Request');
+      Linking.openURL(`mailto:${CONTACT_EMAIL}?subject=Consultation%20Request`);
     } else if (selectedBug === 'donate') {
       navigation.navigate('Donation');
     }
@@ -89,9 +95,6 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
           <Text style={styles.backText}>‹ {selectedBug ? 'Back' : 'Close'}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>Menu</Text>
-        <Text style={styles.subtitle}>
-          {selectedBug ? 'Confirm your selection' : 'Report an issue, contact us, or support development'}
-        </Text>
       </View>
 
       <View style={styles.content}>
@@ -130,7 +133,7 @@ export const MenuScreen: React.FC<MenuScreenProps> = ({ navigation }) => {
                   <Text style={styles.emailText}>
                     This will open your email app to send a report to:
                   </Text>
-                  <Text style={styles.emailAddress}>weroperking@gmail.com</Text>
+                  <Text style={styles.emailAddress}>{CONTACT_EMAIL}</Text>
                 </>
               )}
             </View>

@@ -7,8 +7,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
-  TouchableWithoutFeedback,
 } from 'react-native';
+import { DrugActionMenu } from '../components/DrugActionMenu';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
@@ -70,6 +70,15 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
 
   const hasInfo = drug.manufacturer || drug.distributor || drug.category || drug.subcategory || drug.subcategory2 || drug.route;
 
+  const handleMenuNavigate = (screen: string, drug: Drug, mode?: 'similar' | 'alternatives') => {
+    closeMenu();
+    if (screen === 'DrugAlternatives' && mode) {
+      navigation.navigate('DrugAlternatives', { drug, mode });
+    } else {
+      navigation.navigate(screen as any, { drug });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -112,15 +121,6 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
           </View>
         )}
 
-        {/* Notes Card */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Important Notes</Text>
-          <Text style={styles.disclaimerText}>
-            This information is for reference only. Always consult a qualified healthcare provider before starting any medication.
-            Do not self-diagnose or self-medicate based on this data.
-          </Text>
-        </View>
-
         {/* Action Buttons */}
         <View style={styles.actionButtonsContainer}>
           <TouchableOpacity
@@ -145,64 +145,15 @@ export const DrugDetailScreen: React.FC<DrugDetailScreenProps> = ({
         </View>
       </ScrollView>
 
-      {/* Blur Overlay and Action Menu */}
-      {showMenu && (
-        <Animated.View style={[
-          styles.overlay,
-          { opacity: blurAnim }
-        ]}>
-          <TouchableWithoutFeedback onPress={closeMenu}>
-            <View style={StyleSheet.absoluteFill} />
-          </TouchableWithoutFeedback>
-          
-           <Animated.View style={[
-             styles.menuContainer,
-             {
-               transform: [{
-                 translateY: menuAnim.interpolate({
-                   inputRange: [0, 1],
-                   outputRange: [300, 0],
-                 }),
-               }],
-             }
-           ]}>
-            <View style={styles.selectedCardPreview}>
-              <Text style={styles.previewName}>{drug.trade_name}</Text>
-              <Text style={styles.previewIngredient}>{drug.active_ingredient}</Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                closeMenu();
-                navigation.navigate('DrugAlternatives', { drug, mode: 'similar' });
-              }}
-            >
-              <Text style={styles.menuItemText}>Similar</Text>
-              <Text style={styles.menuItemSubtext}>Same active ingredient</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                closeMenu();
-                navigation.navigate('DrugAlternatives', { drug, mode: 'alternatives' });
-              }}
-            >
-              <Text style={styles.menuItemText}>Alternatives</Text>
-              <Text style={styles.menuItemSubtext}>Same function, different ingredient</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.menuItem, styles.menuItemLast]}
-              onPress={closeMenu}
-            >
-              <Text style={styles.menuItemLastText}>Cancel</Text>
-              <Text style={styles.menuItemLastSubtext}>Close menu</Text>
-            </TouchableOpacity>
-           </Animated.View>
-         </Animated.View>
-      )}
+      <DrugActionMenu
+        drug={showMenu ? drug : null}
+        visible={showMenu}
+        onClose={closeMenu}
+        blurAnim={blurAnim}
+        menuAnim={menuAnim}
+        position="bottom"
+        onNavigate={handleMenuNavigate}
+      />
     </SafeAreaView>
   );
 };
@@ -272,11 +223,6 @@ const styles = StyleSheet.create({
     flex: 2,
     textAlign: 'right',
   },
-  disclaimerText: {
-    ...typography.small,
-    color: colors.neutral.gray,
-    lineHeight: 20,
-  },
   actionButtonsContainer: {
     gap: spacing.md,
     marginTop: spacing.sm,
@@ -316,68 +262,5 @@ const styles = StyleSheet.create({
     ...typography.button,
     textAlign: 'center',
     color: colors.neutral.black,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
-    zIndex: 1000,
-  },
-  menuContainer: {
-    width: '100%',
-    backgroundColor: colors.neutral.white,
-    borderRadius: borderRadius.xl,
-    overflow: 'hidden',
-    borderWidth: 4,
-    borderColor: colors.border.light,
-    ...shadows.large,
-  },
-  selectedCardPreview: {
-    padding: spacing.lg,
-    backgroundColor: colors.primary.green,
-    borderBottomWidth: 4,
-    borderBottomColor: colors.primary.darkGreen,
-  },
-  previewName: {
-    ...typography.h2,
-    color: colors.neutral.white,
-    marginBottom: spacing.xs,
-  },
-  previewIngredient: {
-    ...typography.body,
-    color: colors.neutral.white,
-    opacity: 0.9,
-  },
-  menuItem: {
-    padding: spacing.lg,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.border.light,
-  },
-  menuItemLast: {
-    borderBottomWidth: 0,
-    backgroundColor: colors.accent.red,
-    borderBottomLeftRadius: borderRadius.xl - 4,
-    borderBottomRightRadius: borderRadius.xl - 4,
-  },
-  menuItemText: {
-    ...typography.h2,
-    marginBottom: spacing.xs,
-  },
-  menuItemSubtext: {
-    ...typography.body,
-    color: colors.neutral.gray,
-  },
-  menuItemLastText: {
-    ...typography.h2,
-    marginBottom: spacing.xs,
-    color: colors.neutral.white,
-  },
-  menuItemLastSubtext: {
-    ...typography.body,
-    color: colors.neutral.white,
-    opacity: 0.9,
   },
 });

@@ -47,9 +47,6 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
             </View>
             <View style={styles.sectionInfo}>
               <Text style={styles.sectionTitle}>OTC Recommendation</Text>
-              <Text style={styles.sectionDescription}>
-                Find safe over-the-counter medications based on your symptoms and health profile
-              </Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>
@@ -64,9 +61,6 @@ export const SectionSelectScreen: React.FC<SectionSelectScreenProps> = ({
             </View>
             <View style={styles.sectionInfo}>
               <Text style={styles.sectionTitle}>Drug Search</Text>
-              <Text style={styles.sectionDescription}>
-                Search our database of medications and find alternatives
-              </Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>

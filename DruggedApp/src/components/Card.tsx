@@ -41,14 +41,14 @@ export const Card: React.FC<CardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.neutral.white,
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: colors.border.light,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    ...shadows.large,
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    ...shadows.small,
   },
   highlightedCard: {
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: colors.primary.green,
   },
 });

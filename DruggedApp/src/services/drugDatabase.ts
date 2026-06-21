@@ -60,19 +60,14 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
   }
 
   dbInitPromise = (async () => {
-    console.log('[DB] Opening database on:', Platform.OS);
-
     // Check if running on web and try WASM-based SQLite
     if (Platform.OS === 'web') {
       try {
         const serializedData = await loadAssetAsUint8Array();
         db = await SQLite.deserializeDatabaseAsync(serializedData);
-        console.log('[DB] Web database opened with serialized data');
         return db;
       } catch (error) {
-        console.warn('[DB] Web SQLite failed, falling back to sample data:', error);
         webFallbackMode = true;
-        // Return a mock database with sample data - we'll handle this in searchDrugs
         throw error;
       }
     }

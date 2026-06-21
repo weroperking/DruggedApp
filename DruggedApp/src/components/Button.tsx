@@ -49,34 +49,36 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   buttonInner: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    marginHorizontal: -spacing.xl,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginHorizontal: -spacing.md,
   },
   primaryButton: {
     backgroundColor: colors.primary.green,
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: colors.primary.darkGreen,
-    ...shadows.medium,
+    ...shadows.small,
   },
   secondaryButton: {
     backgroundColor: colors.neutral.white,
-    borderWidth: 4,
+    borderWidth: 1,
     borderColor: colors.border.light,
-    ...shadows.medium,
+    ...shadows.small,
   },
   disabledButton: {
     backgroundColor: colors.neutral.gray,
-    borderWidth: 4,
+    borderWidth: 2,
     borderColor: colors.border.dark,
   },
   buttonText: {
-    ...typography.button,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.neutral.white,
     textAlign: 'center',
   },
   disabledText: {

@@ -15,13 +15,7 @@ import {
   UserConstraints,
   OTCOption,
 } from '../services/constraintEngine';
-
-type RootStackParamList = {
-  Home: undefined;
-  UserInfo: { symptom: string };
-  Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
-  Disclaimer: undefined;
-};
+import { RootStackParamList } from '../navigation/types';
 
 type ResultsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Results'>;
@@ -150,66 +144,67 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.offWhite,
   },
   scrollContent: {
-    padding: spacing.lg,
+    padding: spacing.sm,
   },
   header: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.md,
   },
   title: {
-    ...typography.h1,
-    marginBottom: spacing.sm,
+    ...typography.h2,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    ...typography.body,
+    ...typography.small,
     color: colors.neutral.gray,
   },
   card: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.xs,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
   },
   ingredientName: {
-    ...typography.h2,
+    ...typography.body,
     flex: 1,
+    fontWeight: '700',
   },
   notes: {
-    ...typography.body,
-    marginBottom: spacing.md,
+    ...typography.small,
+    marginBottom: spacing.xs,
   },
   brandsSection: {
     backgroundColor: colors.neutral.offWhite,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    marginBottom: spacing.xs,
   },
   brandsTitle: {
     ...typography.small,
     fontWeight: '700',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   brandsList: {
-    ...typography.body,
+    ...typography.small,
   },
   warningsSection: {
     backgroundColor: '#FFE6E6',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    borderWidth: 2,
+    borderRadius: borderRadius.sm,
+    padding: spacing.xs,
+    marginBottom: spacing.xs,
+    borderWidth: 1,
     borderColor: colors.accent.red,
   },
   warning: {
     ...typography.small,
     color: colors.accent.red,
     fontWeight: '600',
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
   duration: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
   durationText: {
     ...typography.small,
@@ -217,26 +212,27 @@ const styles = StyleSheet.create({
   },
   whenToSee: {
     backgroundColor: colors.neutral.white,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 3,
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    borderWidth: 1,
     borderColor: colors.accent.blue,
-    marginTop: spacing.md,
+    marginTop: spacing.xs,
   },
   whenToSeeTitle: {
-    ...typography.h3,
+    ...typography.small,
     color: colors.accent.blue,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs,
+    fontWeight: '700',
   },
   whenToSeeList: {
-    ...typography.body,
-    marginBottom: spacing.xs,
+    ...typography.small,
+    marginBottom: 2,
   },
   disclaimer: {
-    marginTop: spacing.lg,
-    padding: spacing.md,
+    marginTop: spacing.sm,
+    padding: spacing.sm,
     backgroundColor: colors.accent.yellow,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.sm,
   },
   disclaimerText: {
     ...typography.small,
@@ -245,19 +241,19 @@ const styles = StyleSheet.create({
   },
   noOptions: {
     backgroundColor: '#FFE6E6',
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    borderWidth: 4,
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    borderWidth: 1,
     borderColor: colors.accent.red,
   },
   noOptionsText: {
-    ...typography.body,
+    ...typography.small,
     color: colors.accent.red,
     fontWeight: '600',
     textAlign: 'center',
   },
   footer: {
-    padding: spacing.lg,
+    padding: spacing.sm,
     backgroundColor: colors.neutral.offWhite,
     borderTopWidth: 1,
     borderTopColor: colors.border.light,

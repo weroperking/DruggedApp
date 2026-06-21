@@ -10,13 +10,8 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+import { RootStackParamList } from '../navigation/types';
 import { Drug, getSimilarDrugs, getAlternativeDrugs } from '../services/drugDatabase';
-
-type RootStackParamList = {
-  DrugSearchResults: { drugs: Drug[]; query: string };
-  DrugDetail: { drug: Drug };
-  DrugAlternatives: { drug: Drug; mode: 'similar' | 'alternatives' };
-};
 
 type DrugAlternativesScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'DrugAlternatives'>;

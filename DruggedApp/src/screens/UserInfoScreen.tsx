@@ -12,13 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { Button } from '../components';
 import { colors, spacing, typography, borderRadius } from '../theme';
-
-type RootStackParamList = {
-  Home: undefined;
-  UserInfo: { symptom: string };
-  Results: { symptom: string; age: number; sex: string; pregnancy: boolean };
-  Disclaimer: undefined;
-};
+import { RootStackParamList } from '../navigation/types';
 
 type UserInfoScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'UserInfo'>;
@@ -36,14 +30,15 @@ export const UserInfoScreen: React.FC<UserInfoScreenProps> = ({
   const [pregnancy, setPregnancy] = useState<boolean | null>(null);
 
   const finalAge = customAge || age;
+  const parsedAge = parseInt(finalAge, 10);
 
-  const isValid = finalAge !== '' && sex !== null && (sex === 'male' || pregnancy !== null);
+  const isValid = finalAge !== '' && !Number.isNaN(parsedAge) && sex !== null && (sex === 'male' || pregnancy !== null);
 
   const handleContinue = () => {
     if (isValid) {
       navigation.navigate('Results', {
         symptom,
-        age: parseInt(finalAge, 10),
+        age: parsedAge,
         sex: sex as string,
         pregnancy: sex === 'female' ? pregnancy === true : false,
       });
