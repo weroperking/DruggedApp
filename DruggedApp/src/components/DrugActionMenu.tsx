@@ -17,6 +17,7 @@ export interface DrugActionMenuProps {
   onSimilar?: (drug: Drug) => void;
   onAlternatives?: (drug: Drug) => void;
   onDetails?: (drug: Drug) => void;
+  onNavigate?: (screen: string, drug: Drug, mode?: 'similar' | 'alternatives') => void;
   blurAnim?: Animated.Value;
   menuAnim?: Animated.Value;
   position?: 'center' | 'bottom';
@@ -29,6 +30,7 @@ export const DrugActionMenu: React.FC<DrugActionMenuProps> = ({
   onSimilar,
   onAlternatives,
   onDetails,
+  onNavigate,
   blurAnim,
   menuAnim,
   position = 'center',
@@ -79,7 +81,7 @@ export const DrugActionMenu: React.FC<DrugActionMenuProps> = ({
         {onSimilar && (
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => onSimilar(drug)}
+            onPress={() => onNavigate ? onNavigate('DrugAlternatives', drug, 'similar') : onSimilar(drug)}
           >
             <Text style={styles.menuItemText}>Similar</Text>
             <Text style={styles.menuItemSubtext}>Same active ingredient</Text>
@@ -89,7 +91,7 @@ export const DrugActionMenu: React.FC<DrugActionMenuProps> = ({
         {onAlternatives && (
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => onAlternatives(drug)}
+            onPress={() => onNavigate ? onNavigate('DrugAlternatives', drug, 'alternatives') : onAlternatives(drug)}
           >
             <Text style={styles.menuItemText}>Alternatives</Text>
             <Text style={styles.menuItemSubtext}>Same function, different ingredient</Text>
@@ -108,7 +110,7 @@ export const DrugActionMenu: React.FC<DrugActionMenuProps> = ({
           onDetails && (
             <TouchableOpacity
               style={[styles.menuItem, styles.menuItemLast]}
-              onPress={() => onDetails(drug)}
+              onPress={() => onNavigate ? onNavigate('DrugDetail', drug) : onDetails(drug)}
             >
               <Text style={styles.menuItemText}>Details</Text>
               <Text style={styles.menuItemSubtext}>View full information</Text>
