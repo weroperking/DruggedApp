@@ -106,7 +106,9 @@ async function getNativeDb(): Promise<SQLite.SQLiteDatabase> {
     }
     
     db = await SQLite.openDatabaseAsync(destPath);
-    console.log('[DB] Native database opened successfully');
+    if (__DEV__) {
+      console.log('[DB] Native database opened successfully');
+    }
     return db;
   })();
 
@@ -187,12 +189,12 @@ export async function initDatabase(): Promise<void> {
           content_rowid='id',
           tokenize='unicode61 remove_diacritics 2'
         );
-      `);
+        `);
 
       // Rebuild/sync the FTS5 index using the documented rebuild command
       await database.execAsync(`
         INSERT INTO drugs_fts(drugs_fts) VALUES('rebuild');
-      `);
+        `);
 
       // Create triggers to automatically keep FTS index in sync
       await database.execAsync(`
@@ -201,30 +203,36 @@ export async function initDatabase(): Promise<void> {
                                manufacturer, distributor, route, search_index)
           VALUES (new.id, new.trade_name, new.active_ingredient, new.category, new.subcategory,
                   new.manufacturer, new.distributor, new.route, new.search_index);
-        END;
+          END;
 
-        CREATE TRIGGER IF NOT EXISTS drugs_fts_update AFTER UPDATE ON drugs BEGIN
+          CREATE TRIGGER IF NOT EXISTS drugs_fts_update AFTER UPDATE ON drugs BEGIN
           DELETE FROM drugs_fts WHERE rowid = old.id;
           INSERT INTO drugs_fts(rowid, trade_name, active_ingredient, category, subcategory,
                                manufacturer, distributor, route, search_index)
           VALUES (new.id, new.trade_name, new.active_ingredient, new.category, new.subcategory,
                   new.manufacturer, new.distributor, new.route, new.search_index);
-        END;
+          END;
 
-        CREATE TRIGGER IF NOT EXISTS drugs_fts_delete AFTER DELETE ON drugs BEGIN
+          CREATE TRIGGER IF NOT EXISTS drugs_fts_delete AFTER DELETE ON drugs BEGIN
           DELETE FROM drugs_fts WHERE rowid = old.id;
-        END;
-      `);
+          END;
+        `);
 
-      console.log('[DB] FTS5 initialized successfully');
+      if (__DEV__) {
+        console.log('[DB] FTS5 initialized successfully');
+      }
     } catch (error) {
-      console.warn('[DB] FTS5 not available, falling back to standard search:', error);
+      if (__DEV__) {
+        console.warn('[DB] FTS5 not available, falling back to standard search:', error);
+      }
       // FTS5 not available - continue without it, search function will use LIKE fallback
     }
   } catch (error) {
     // If on web and database fails, use fallback mode
     if (Platform.OS === 'web') {
-      console.warn('[DB] Web database unavailable, using fallback sample data');
+      if (__DEV__) {
+        console.warn('[DB] Web database unavailable, using fallback sample data');
+      }
       webFallbackMode = true;
       return;
     }
@@ -241,9 +249,11 @@ export async function searchDrugs(
 
   // Web fallback mode - use JavaScript filtering on sample data
   if (webFallbackMode) {
-    console.log('[DEBUG] Web fallback mode - Platform.OS:', Platform.OS);
-    console.log('[DEBUG] Query:', q, '| field:', field);
-    console.log('[DEBUG] WEB_SAMPLE length:', WEB_SAMPLE.length);
+    if (__DEV__) {
+      console.log('[DEBUG] Web fallback mode - Platform.OS:', Platform.OS);
+      console.log('[DEBUG] Query:', q, '| field:', field);
+      console.log('[DEBUG] WEB_SAMPLE length:', WEB_SAMPLE.length);
+    }
     
     const normalizedQuery = q.toLowerCase();
     const results = WEB_SAMPLE.filter((drug: Drug) => {
@@ -266,7 +276,9 @@ export async function searchDrugs(
       return a.trade_name.localeCompare(b.trade_name);
     });
     
-    console.log('[DEBUG] Web results:', results.length);
+    if (__DEV__) {
+      console.log('[DEBUG] Web results:', results.length);
+    }
     return results.slice(0, 50);
   }
 
@@ -284,13 +296,17 @@ export async function searchDrugs(
     throw new Error(`Invalid search field: ${field}`);
   }
 
-  console.log('[DEBUG] Platform.OS:', Platform.OS, '| field:', field, '| query:', q);
+  if (__DEV__) {
+    console.log('[DEBUG] Platform.OS:', Platform.OS, '| field:', field, '| query:', q);
+  }
 
   const database = await getNativeDb();
   
   // Handle wildcard pattern search
   if (isWildcardPattern(q)) {
-    console.log('[DB] Using wildcard pattern search');
+    if (__DEV__) {
+      console.log('[DB] Using wildcard pattern search');
+    }
     const likePattern = patternToSqlLike(q);
     const startChar = getStartChar(q);
     const endChar = getEndChar(q);
@@ -370,9 +386,13 @@ export async function searchDrugs(
       params = [...whereParams, q, likePattern];
     }
 
-    console.log('[DB] Executing wildcard query');
+    if (__DEV__) {
+      console.log('[DB] Executing wildcard query');
+    }
     const results = await database.getAllAsync<Drug>(querySQL, params);
-    console.log('[DB] Wildcard Results:', results.length);
+    if (__DEV__) {
+      console.log('[DB] Wildcard Results:', results.length);
+    }
     
     return results;
   }
@@ -416,13 +436,19 @@ export async function searchDrugs(
         params = [`${field}:${ftsTerm}`];
       }
 
-      console.log('[DB] Executing FTS5 query');
+      if (__DEV__) {
+        console.log('[DB] Executing FTS5 query');
+      }
       const results = await database.getAllAsync<Drug>(querySQL, params);
-      console.log('[DB] FTS Results:', results.length);
+      if (__DEV__) {
+        console.log('[DB] FTS Results:', results.length);
+      }
       
       return results;
     } catch (error) {
-      console.warn('[DB] FTS5 query failed, falling back to LIKE search:', error);
+      if (__DEV__) {
+        console.warn('[DB] FTS5 query failed, falling back to LIKE search:', error);
+      }
     }
   }
   
@@ -460,9 +486,13 @@ export async function searchDrugs(
     params = [pattern, startPattern];
   }
 
-  console.log('[DB] Executing fallback LIKE query');
+  if (__DEV__) {
+    console.log('[DB] Executing fallback LIKE query');
+  }
   const results = await database.getAllAsync<Drug>(querySQL, params);
-  console.log('[DB] LIKE Results:', results.length);
+  if (__DEV__) {
+    console.log('[DB] LIKE Results:', results.length);
+  }
   
   return results;
 }
@@ -613,16 +643,22 @@ export async function getPriceDrops(limit = 20): Promise<Drug[]> {
 
 export async function getDrugCount(): Promise<number> {
   if (webFallbackMode) {
-    console.log('[DB] Web fallback - returning sample count:', WEB_SAMPLE.length);
+    if (__DEV__) {
+      console.log('[DB] Web fallback - returning sample count:', WEB_SAMPLE.length);
+    }
     return WEB_SAMPLE.length;
   }
   try {
     const db = await getNativeDb();
     const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM drugs');
-    console.log('[DB] Drug count:', result?.count);
+    if (__DEV__) {
+      console.log('[DB] Drug count:', result?.count);
+    }
     return result?.count ?? 0;
   } catch (error) {
-    console.error('[DB] getDrugCount error:', error);
+    if (__DEV__) {
+      console.error('[DB] getDrugCount error:', error);
+    }
     return 0;
   }
 }

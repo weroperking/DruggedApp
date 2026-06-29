@@ -8,3 +8,4 @@ export { DrugDetailScreen } from './DrugDetailScreen';
 export { DrugAlternativesScreen } from './DrugAlternativesScreen';
 export { MenuScreen } from './MenuScreen';
 export { DonationScreen } from './DonationScreen';
+export { DisclaimerScreen } from './DisclaimerScreen';

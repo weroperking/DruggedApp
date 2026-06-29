@@ -67,7 +67,8 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeSearchId = useRef(0);
 
-  const currentMode = SEARCH_MODES.find(m => m.value === searchField)!;
+  // Safe mode selection - default to 'all' if somehow invalid
+  const currentMode = SEARCH_MODES.find(m => m.value === searchField) || SEARCH_MODES[0];
 
   const runSearch = React.useCallback(async (rawQuery: string, field: SearchField) => {
     const trimmed = rawQuery.trim();
@@ -83,14 +84,20 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
     setError(null);
 
     try {
-      console.log('[Search] Searching for:', trimmed, 'in field:', field);
+      if (__DEV__) {
+        console.log('[Search] Searching for:', trimmed, 'in field:', field);
+      }
       const searchResults = await searchDrugs(trimmed, field);
       if (searchId !== activeSearchId.current) return;
-      console.log('[Search] Found results:', searchResults.length);
+      if (__DEV__) {
+        console.log('[Search] Found results:', searchResults.length);
+      }
       setResults(searchResults);
     } catch (error) {
       if (searchId !== activeSearchId.current) return;
-      console.error('[Search] Error:', error);
+      if (__DEV__) {
+        console.error('[Search] Error:', error);
+      }
       setError('Search failed. Please try again.');
     } finally {
       if (searchId === activeSearchId.current) {
@@ -266,15 +273,15 @@ export const DrugSearchScreen: React.FC<DrugSearchScreenProps> = ({
                     </Text>
                   </TouchableOpacity>
                 ))}
-<TouchableOpacity
-  style={styles.viewAllButton}
-  onPress={handleViewResults}
-  activeOpacity={0.8}
->
-  <Text style={styles.viewAllButtonText}>
-    View all {results.length} results
-  </Text>
-</TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.viewAllButton}
+                  onPress={handleViewResults}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.viewAllButtonText}>
+                    View all {results.length} results
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 

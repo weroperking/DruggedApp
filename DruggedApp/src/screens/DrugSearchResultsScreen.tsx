@@ -46,7 +46,7 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
     }).start(() => setSelectedDrug(null));
   }, [blurAnim]);
 
-  const renderDrugCard = useCallback(({ item: drug, index }: { item: Drug; index: number }) => {
+  const renderDrugCard = useCallback(({ item: drug }: { item: Drug }) => {
     const handlePress = () => {
       if (selectedDrug) {
         closeMenu();
@@ -74,25 +74,18 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
     );
   }, [navigation, selectedDrug, closeMenu, handleLongPress]);
 
-  const ITEM_HEIGHT = 80;
-  const getItemLayout = useCallback((data: ArrayLike<Drug> | null | undefined, index: number) => ({
-    length: ITEM_HEIGHT,
-    offset: ITEM_HEIGHT * index,
-    index,
-  }), []);
-
   const uniqueIngredients = useMemo(() => 
     [...new Set(drugs.map((d) => d.active_ingredient))]
   , [drugs]);
 
-  const handleMenuNavigate = (screen: string, drug: Drug, mode?: 'similar' | 'alternatives') => {
+  const handleMenuNavigate = useCallback((screen: string, drug: Drug, mode?: 'similar' | 'alternatives') => {
     closeMenu();
     if (screen === 'DrugAlternatives' && mode) {
       navigation.navigate('DrugAlternatives', { drug, mode });
     } else {
       navigation.navigate(screen as any, { drug });
     }
-  };
+  }, [closeMenu, navigation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,7 +126,6 @@ export const DrugSearchResultsScreen: React.FC<DrugSearchResultsScreenProps> = (
           initialNumToRender={10}
           maxToRenderPerBatch={5}
           windowSize={10}
-          getItemLayout={getItemLayout}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyText}>No drugs found</Text>

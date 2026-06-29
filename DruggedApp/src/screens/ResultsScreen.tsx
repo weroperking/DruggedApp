@@ -87,13 +87,13 @@ export const ResultsScreen: React.FC<ResultsScreenProps> = ({
               <View style={styles.brandsSection}>
                 <Text style={styles.brandsTitle}>Available Brands:</Text>
                 <Text style={styles.brandsList}>
-                  {option.ingredient.egyptian_brand_names.join(', ')}
+                  {(option.ingredient.egyptian_brand_names ?? []).join(', ')}
                 </Text>
               </View>
 
-              {option.ingredient.warnings.length > 0 && (
+              {(option.ingredient.warnings?.length ?? 0) > 0 && (
                 <View style={styles.warningsSection}>
-                  {option.ingredient.warnings.map((warning, wIndex) => (
+                  {(option.ingredient.warnings ?? []).map((warning, wIndex) => (
                     <Text key={wIndex} style={styles.warning}>
                       ⚠️ {warning}
                     </Text>

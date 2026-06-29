@@ -16,6 +16,7 @@ import {
   DrugAlternativesScreen,
   MenuScreen,
   DonationScreen,
+  DisclaimerScreen,
 } from './src/screens';
 import { colors, spacing } from './src/theme';
 import { initDatabase, getDrugCount } from './src/services/drugDatabase';
@@ -213,11 +214,15 @@ export default function App() {
       try {
         await initDatabase();
         const count = await getDrugCount();
+        if (__DEV__) {
+          console.log('[App] Database initialized, total drugs:', count);
+        }
         setDrugCount(count);
-        console.log('[App] Database initialized, total drugs:', count);
         setDbInitialized(true);
       } catch (error) {
-        console.error('[App] Database initialization failed:', error);
+        if (__DEV__) {
+          console.error('[App] Database initialization failed:', error);
+        }
         setDbError(String(error));
       }
     };
@@ -226,87 +231,112 @@ export default function App() {
   }, [retryCount]);
 
   useEffect(() => {
+    let responseSubscription: { remove: () => void } | null = null;
+
     const setupNotifications = async () => {
       if (Platform.OS === 'web') {
-        console.log('[Notifications] Notifications not supported on web');
+        if (__DEV__) {
+          console.log('[Notifications] Notifications not supported on web');
+        }
         return;
       }
 
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
+      try {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
 
-      if (finalStatus !== 'granted') {
-        console.log('[Notifications] Permission not granted');
-        return;
-      }
+        if (finalStatus !== 'granted') {
+          if (__DEV__) {
+            console.log('[Notifications] Permission not granted');
+          }
+          return;
+        }
 
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('donation-reminders', {
-          name: 'Donation reminders',
-          description: 'Gentle reminders to support the app',
-          importance: Notifications.AndroidImportance.LOW,
-          lightColor: colors.primary.green,
-        });
-      }
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('donation-reminders', {
+            name: 'Donation reminders',
+            description: 'Gentle reminders to support the app',
+            importance: Notifications.AndroidImportance.LOW,
+            lightColor: colors.primary.green,
+          });
+        }
 
-      const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
-      const hasExistingReminder = scheduledNotifications.some(
-        notification => notification.content.data?.tag === 'donation-reminder'
-      );
+        const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+        const hasExistingReminder = scheduledNotifications.some(
+          notification => notification.content?.data?.tag === 'donation-reminder'
+        );
 
-      if (!hasExistingReminder) {
-        const randomMessage = EMPATHY_MESSAGES[Math.floor(Math.random() * EMPATHY_MESSAGES.length)];
-        const intervalDays = Math.floor(Math.random() * 3) + 4;
+        if (!hasExistingReminder) {
+          const randomMessage = EMPATHY_MESSAGES[Math.floor(Math.random() * EMPATHY_MESSAGES.length)];
+          const intervalDays = Math.floor(Math.random() * 3) + 4;
 
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Drugged App',
-            body: randomMessage,
-            data: { screen: 'Donation', tag: 'donation-reminder' },
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-            repeats: true,
-            seconds: intervalDays * 24 * 60 * 60,
-          },
-        });
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: 'Drugged App',
+              body: randomMessage,
+              data: { screen: 'Donation', tag: 'donation-reminder' },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+              repeats: true,
+              seconds: intervalDays * 24 * 60 * 60,
+            },
+          });
 
-        console.log(`[Notifications] Scheduled donation reminder every ${intervalDays} days`);
-      } else {
-        console.log('[Notifications] Donation reminder already scheduled, skipping');
+          if (__DEV__) {
+            console.log(`[Notifications] Scheduled donation reminder every ${intervalDays} days`);
+          }
+        } else {
+          if (__DEV__) {
+            console.log('[Notifications] Donation reminder already scheduled, skipping');
+          }
+        }
+      } catch (notificationError) {
+        if (__DEV__) {
+          console.error('[Notifications] Setup failed:', notificationError);
+        }
       }
     };
 
     const handleNotificationResponse = (response: Notifications.NotificationResponse) => {
-      const screen = response.notification.request.content.data?.screen;
-      if (screen === 'Donation' && navigationRef.current) {
+      // Safely access notification data with null checks
+      const request = response?.notification?.request;
+      const data = request?.content?.data;
+      const screen = data?.screen;
+      
+      if (screen === 'Donation' && navigationRef.current && navigationRef.current.isReady()) {
         navigationRef.current.navigate('Donation');
       }
     };
 
-    let responseSubscription: { remove: () => void } | null = null;
-    
-    if (Platform.OS !== 'web') {
-      responseSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
-    }
-
     const checkColdStartNotification = async () => {
       if (Platform.OS === 'web') return;
       
-      const lastResponse = await Notifications.getLastNotificationResponseAsync();
-      if (lastResponse && lastResponse.notification.request.content.data?.screen === 'Donation' && navigationRef.current) {
-        navigationRef.current.navigate('Donation');
+      try {
+        const lastResponse = await Notifications.getLastNotificationResponseAsync();
+        const data = lastResponse?.notification?.request?.content?.data;
+        if (data?.screen === 'Donation' && navigationRef.current && navigationRef.current.isReady()) {
+          navigationRef.current.navigate('Donation');
+        }
+      } catch (error) {
+        if (__DEV__) {
+          console.error('[Notifications] Cold start check failed:', error);
+        }
       }
     };
 
     if (dbInitialized) {
       setupNotifications();
       checkColdStartNotification();
+    }
+
+    if (Platform.OS !== 'web') {
+      responseSubscription = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
     }
 
     return () => {
@@ -369,6 +399,11 @@ export default function App() {
         <Stack.Screen
           name="Home"
           component={HomeScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Disclaimer"
+          component={DisclaimerScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
