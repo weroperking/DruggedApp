@@ -1,0 +1,1 @@
+https://huggingface.co/datasets/weroperking/drugged/blob/main/drugged.db
